@@ -24,6 +24,13 @@ class mp_conv_v2(base_mp_nn):
                  extension=mp_conv_type.ORIG_WITH_DIFF,
                  activation_fn='relu',
                  aggregtor='max'):
+        """
+        :param nin: dimension of input features
+        :param nou: dimension of output features
+        :param nedge_types: number of hidden layers in the Q net.
+        :param bias: use bias or not
+        :param bn: use batch norm or not
+        """
         super(mp_conv_v2, self).__init__()
 
         self.nin = nin
