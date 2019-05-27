@@ -6,6 +6,10 @@ from .base_model import base_mp_nn
 
 
 class factor_mpnn(torch.nn.Module):
+    """
+    Factor GNN class. This module is used to passing messages between factors and nodes. 
+    """
+
     def __init__(self,
                  node_feature_dim,
                  factor_feature_dim_list,
@@ -13,6 +17,14 @@ class factor_mpnn(torch.nn.Module):
                  netype_list,
                  gnn_immediate_dim=64,
                  max_mpnn_dim=64):
+        """
+        :param node_feature_dim: dimension of input node feature. 
+        :param factor_feature_dim_list: a list of factor feature dimensions.
+        :param dim_mapping_list: a list of feature dimensions
+        :param netype_list: a list of integers, a hyper parameter for Q model.
+        :param gnn_immediate_dim: number of outputs for a GNN layer
+        :param max_mpnn_dim: max dimension for a GNN layer (mainly for memory constraints)
+        """
         super(factor_mpnn, self).__init__()
         self.node_feature_dim = node_feature_dim
         self.map_dim = dim_mapping_list[0]
@@ -58,6 +70,11 @@ class factor_mpnn(torch.nn.Module):
             self.mp_merge_modules.append(merge_module)
 
     def forward(self, node_features, factor_features, graph_structures):
+        """
+        :param node_features: features on nodes 
+        :param factor_features: list of features on different types of factors 
+        :param graph_structures: factor graph structure.
+        """
         nnode = node_features.shape[2]
         nfeatures = self.mapping_modules[0](node_features)
 
