@@ -37,7 +37,6 @@ class mp_conv_v2(base_mp_nn):
         self.nou = nou
         self.nedge_types = nedge_types
         self.extension = extension
-
         if self.extension == mp_conv_type.NO_EXTENSION:
             self.filters = torch.nn.Parameter(
                 torch.zeros(nin, nou * nedge_types, dtype=torch.float32))
