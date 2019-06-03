@@ -63,18 +63,22 @@ def parse_args():
 
     parser.add_argument('--train_path',
                         type=str,
-                        default="pw_train.dat",
+                        default="synthetic_data/pw_train.dat",
                         help="path of the training dataset")
 
     parser.add_argument('--test_path',
                         type=str,
-                        default="pw_test.dat",
+                        default="synthetic_data/pw_test.dat",
                         help="path of the testing dataset")
 
-    parser.add_argument('--train_size', type=int, default=90000, 
+    parser.add_argument('--train_size',
+                        type=int,
+                        default=90000,
                         help="size of training dataset")
 
-    parser.add_argument('--test_size', type=int, default=10000, 
+    parser.add_argument('--test_size',
+                        type=int,
+                        default=10000,
                         help="size of testing dataset")
 
     parser.add_argument('--batch_size', type=int, default=32)
@@ -213,19 +217,23 @@ def main():
     #                                          num_workers=8,
     #                                          worker_init_fn=worker_init_fn)
 
-    train_dataset = lib.data.RandomPGMData(args.train_path, pgm_type="pws", size=args.train_size)
-    test_dataset = lib.data.RandomPGMData(args.test_path, pgm_type="pws", size=args.test_size)
+    train_dataset = lib.data.RandomPGMData(args.train_path,
+                                           pgm_type="pws",
+                                           size=args.train_size)
+    test_dataset = lib.data.RandomPGMData(args.test_path,
+                                          pgm_type="pws",
+                                          size=args.test_size)
 
-    train_loader = torch.utils.data.DataLoader(train_dataset, 
-                                            batch_size=args.batch_size, 
-                                            shuffle=True,
-                                            num_workers=8,
-                                            worker_init_fn=worker_init_fn)
-    test_loader = torch.utils.data.DataLoader(test_dataset, 
-                                            batch_size=args.batch_size,
-                                            shuffle=True,
-                                            num_workers=8,
-                                            worker_init_fn=worker_init_fn)
+    train_loader = torch.utils.data.DataLoader(train_dataset,
+                                               batch_size=args.batch_size,
+                                               shuffle=True,
+                                               num_workers=8,
+                                               worker_init_fn=worker_init_fn)
+    test_loader = torch.utils.data.DataLoader(test_dataset,
+                                              batch_size=args.batch_size,
+                                              shuffle=True,
+                                              num_workers=8,
+                                              worker_init_fn=worker_init_fn)
 
     optimizer = torch.optim.Adam(parameters, lr=3e-3)
     scheduler = torch.optim.lr_scheduler.LambdaLR(
@@ -259,11 +267,11 @@ def main():
         torch.save(
             get_model_dict(),
             '{}_nn_pw_{}_epoches_{}.pt'.format(args.model_name, args.neighbour,
-                                            epoch))
+                                               epoch))
 
         logging.info('save train result to {}'.format(
             '{}_nn_pw_{}_epoches_{}.pt'.format(args.model_name, args.neighbour,
-                                            epoch)))
+                                               epoch)))
         scheduler.step()
 
         loss_seq = []
@@ -329,11 +337,11 @@ def main():
         torch.save(
             get_model_dict(),
             '{}_nn_pw_{}_epoches_{}.pt'.format(args.model_name, args.neighbour,
-                                            epoch))
+                                               epoch))
 
         logging.info('save train result to {}'.format(
             '{}_nn_pw_{}_epoches_{}.pt'.format(args.model_name, args.neighbour,
-                                            epoch)))
+                                               epoch)))
         logging.info('training done!')
 
     loss_seq = []
@@ -341,56 +349,55 @@ def main():
     acc_lp_seq = []
     gcnt = 0
     for bcnt, (nfeature, pws, nlabel,
-                lp_label) in tqdm(enumerate(test_loader)):
-            if args.use_cuda:
-                nfeature, pws, nlabel, lp_label \
-                    = nfeature.cuda(), pws.cuda(), nlabel.cuda(), lp_label.cuda()
-            if len(nfeature.shape) == 3:
-                nfeature = nfeature.unsqueeze(-1)
+               lp_label) in tqdm(enumerate(test_loader)):
+        if args.use_cuda:
+            nfeature, pws, nlabel, lp_label \
+                = nfeature.cuda(), pws.cuda(), nlabel.cuda(), lp_label.cuda()
+        if len(nfeature.shape) == 3:
+            nfeature = nfeature.unsqueeze(-1)
 
-            etype_pw = emodel_pw(efeature_pw)
-            etype_high = emodel_high(efeature_high)
-            bsize = nfeature.shape[0]
+        etype_pw = emodel_pw(efeature_pw)
+        etype_high = emodel_high(efeature_high)
+        bsize = nfeature.shape[0]
 
-            pred, _ = model(nfeature,
-                            [pws, high_feature.repeat(bsize, 1, 1, 1)],
-                            [[
-                                nn_idx_pw.repeat(bsize, 1, 1),
-                                etype_pw.repeat(bsize, 1, 1, 1)
-                            ],
-                             [
-                                 nn_idx_high.repeat(bsize, 1, 1),
-                                 etype_high.repeat(bsize, 1, 1, 1)
-                             ]])
+        pred, _ = model(
+            nfeature, [pws, high_feature.repeat(bsize, 1, 1, 1)],
+            [[nn_idx_pw.repeat(bsize, 1, 1),
+              etype_pw.repeat(bsize, 1, 1, 1)],
+             [
+                 nn_idx_high.repeat(bsize, 1, 1),
+                 etype_high.repeat(bsize, 1, 1, 1)
+             ]])
 
-            pred = pred.squeeze(-1).permute(0, 2, 1).contiguous()
-            loss = torch.nn.functional.cross_entropy(pred.view(-1, 2),
-                                                     nlabel.view(-1))
-            torch.nn.utils.clip_grad_norm(parameters, 1.0)
+        pred = pred.squeeze(-1).permute(0, 2, 1).contiguous()
+        loss = torch.nn.functional.cross_entropy(pred.view(-1, 2),
+                                                 nlabel.view(-1))
+        torch.nn.utils.clip_grad_norm(parameters, 1.0)
 
-            loss_seq.append(loss.item())
-            gcnt += 1
+        loss_seq.append(loss.item())
+        gcnt += 1
 
-            pred_int = pred.argmax(dim=-1)
-            all_correct = torch.sum(pred_int == nlabel)
-            lp_correct = torch.sum(lp_label == nlabel)
-            acc = all_correct.item() / np.prod(nlabel.shape)
-            lp_acc = lp_correct.item() / np.prod(nlabel.shape)
+        pred_int = pred.argmax(dim=-1)
+        all_correct = torch.sum(pred_int == nlabel)
+        lp_correct = torch.sum(lp_label == nlabel)
+        acc = all_correct.item() / np.prod(nlabel.shape)
+        lp_acc = lp_correct.item() / np.prod(nlabel.shape)
 
-            acc_lp_seq.append(lp_acc)
-            acc_seq.append(acc)
+        acc_lp_seq.append(lp_acc)
+        acc_seq.append(acc)
 
-            if gcnt % 10 == 0:
-                logging.info(
-                    'testing: bcnt = {} loss = {} acc = {} lp_acc={}'.format(
-                        bcnt, np.mean(loss_seq), np.mean(acc_seq),
-                        np.mean(acc_lp_seq)))
-                writer.add_scalar('syn_test/loss', loss.item(), gcnt)
-                writer.add_scalar('syn_test/acc', acc, gcnt)
-                writer.add_scalar('syn_test/lp_acc', lp_acc, gcnt)
-                loss_seq = []
-                acc_seq = []
-                acc_lp_seq = []
+        if gcnt % 10 == 0:
+            logging.info(
+                'testing: bcnt = {} loss = {} acc = {} lp_acc={}'.format(
+                    bcnt, np.mean(loss_seq), np.mean(acc_seq),
+                    np.mean(acc_lp_seq)))
+            writer.add_scalar('syn_test/loss', loss.item(), gcnt)
+            writer.add_scalar('syn_test/acc', acc, gcnt)
+            writer.add_scalar('syn_test/lp_acc', lp_acc, gcnt)
+            loss_seq = []
+            acc_seq = []
+            acc_lp_seq = []
+
 
 if __name__ == '__main__':
     main()

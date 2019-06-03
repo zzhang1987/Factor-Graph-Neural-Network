@@ -19,6 +19,27 @@ Most of the successful deep neural network architectures are structured, often c
 
 ## MAP Inference 
 
+### Dataset downloading
+
+Download the generated synthetic dataset from [synthetic_data.tar.bz2](https://drive.google.com/file/d/1Me9UeR8USxqg_SEE-ZstB2R8xHThOfqA/view?usp=sharing)
+Place the file in the root folder of the repo and run 
+
+``` shell
+tar -jxvf synthetic_data.tar.bz2 
+```
+
+### Training and test the model 
+
+``` shell
+# model with fixed pairwise and higher order potential 
+python train_syn_fixed_pw_hop.py
+
+# model with fixed higher order potential but flexible pairwise potential 
+python train_syn_pw_factor.py
+
+#model with flexible pairwise and higher order potential 
+train_syn_hop_factor.py
+```
 
 ## Point Cloud Segmentation
 

@@ -1,6 +1,5 @@
 import torch
 from .mp_nn import mp_conv_v2, mp_conv_type
-from .mp_nn_double import mp_conv_double
 from .base_model import base_mp_nn
 SyncBatchNorm = torch.nn.BatchNorm2d
 
@@ -25,8 +24,7 @@ class mp_conv_residual(base_mp_nn):
         self.conv1 = torch.nn.Sequential(torch.nn.Conv2d(nin, nmed, 1),
                                          SyncBatchNorm(nmed),
                                          torch.nn.ReLU(inplace=True))
-        self.mp_conv = mp_conv_double(nmed, nmed, nmed, netype, extension=extension) \
-            if with_hop else mp_conv_v2(nmed, nmed, netype, extension=extension)
+        self.mp_conv = mp_conv_v2(nmed, nmed, netype, extension=extension)
 
         self.conv2 = torch.nn.Sequential(torch.nn.Conv2d(nmed, nin, 1),
                                          SyncBatchNorm(nin),
