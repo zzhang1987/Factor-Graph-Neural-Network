@@ -11,7 +11,7 @@ The following packages are required:
 
 ## Introduction
 
-![FGNN](images/FGNN.svg?raw=true "Factor Graph Neural Network")
+![FGNN](images/FGNN.svg?sanitize=true "Factor Graph Neural Network")
 
 ## Citation
 
