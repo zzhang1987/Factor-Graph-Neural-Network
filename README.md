@@ -11,6 +11,8 @@ The following packages are required:
 
 ## Introduction
 
+[FGNN]: images/FGNN.svg
+
 ## Citation
 
 
