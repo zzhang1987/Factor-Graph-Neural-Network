@@ -7,7 +7,7 @@ The following packages are required:
 
     + Python 3 
     + PyTorch 1.0
-    +［AD3］(https://github.com/andre-martins/AD3)
+    + AD3 [](https://github.com/andre-martins/AD3)
 
 ## Introduction
 
