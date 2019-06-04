@@ -108,7 +108,7 @@ def worker_init_fn(idx):
 
 def main():
     args = parse_args()
-    subdir = f'raw_at_{datetime.datetime.now().strftime("%Y-%m-%d_%H:%M:%S")}'
+    subdir = f'raw_nn_{args.neighbour}_at_{datetime.datetime.now().strftime("%Y-%m-%d_%H:%M:%S")}'
     utils.init_logger('./logs/', subdir, print_log=False)
     logging.info(str(args))
 
@@ -237,7 +237,7 @@ def main():
             }
 
     def get_filename(epoch):
-        return f'raw_epoches_{epoch}.pt'
+        return f'raw_nn_{args.neighbour}_epoches_{epoch}.pt'
 
     epoch = 0
     for epoch in tqdm(range(start_epoch, args.train_epoches)):
