@@ -16,6 +16,16 @@ Most of the successful deep neural network architectures are structured, often c
 
 ## Citation
 
+If you find the code useful, please consider cite 
+
+```
+@misc{1906.00554,
+Author = {Zhen Zhang and Fan Wu and Wee Sun Lee},
+Title = {Factor Graph Neural Network},
+Year = {2019},
+Eprint = {arXiv:1906.00554},
+}
+```
 
 ## MAP Inference 
 
