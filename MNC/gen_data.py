@@ -47,7 +47,7 @@ def work(gcx, sigma, train):
 
     # 3. received code: y
     os.system(
-        f'./t2y -tfile _t/96 -yfile _y/96 -gcx {gcx} -seed 322457 -n 96 -sigma {sigma} ')
+        f'./t2y -tfile _t/96 -yfile _y/96 -gcx {gcx} -seed {np.random.randint(0, 65536)} -n 96 -sigma {sigma} ')
     y = read_from_file('_y/96', float)
 
     error = 0
