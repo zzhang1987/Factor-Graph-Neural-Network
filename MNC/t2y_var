@@ -1,0 +1,24 @@
+# t2y variables (for GAUSSIAN CHANNEL)
+#
+# file to be read by commander.p
+# each line is turned into a structure entry   	(str)
+#     	a default-setting entry			(def)
+#     	a usage-printing entry			(usg)
+# 	and a command line reading entry	(clr)
+# of these, the S, U and C can be disabled by >No S, etc.
+# and the D can be disabled by -.
+#
+# variable    		type deflt flag  short_name extra_action long_name
+#
+c->verbose 	d 0 -v verbose 		- 	verbosity
+#
+c->rfile	s - -yfile yfile	- file: y vector
+c->N		d - -n n		- block length
+#
+c->tsuffix		d 0 -tsuffix ts		-	whether tfile should have suffices .0001,.0002... appended
+c->ysuffix		d 0 -ysuffix ys		-	whether yfile should have suffices .0001,.0002... appended
+#
+c->tfile		s - -tfile tfile	-	t vector
+#
+c->gcx		f 1.0 -gcx gcx		- signal_to_noise ratio
+c->seed		ld 1234 -seed seed	- -

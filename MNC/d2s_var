@@ -1,0 +1,13 @@
+# d2s variables
+#
+# file to be read by commander.p
+# each line is turned into a structure entry   	(str)
+#     	a default-setting entry			(def)
+#     	a usage-printing entry			(usg)
+# 	and a command line reading entry	(clr)
+# of these, the S, U and C can be disabled by >No S, etc.
+# and the D can be disabled by -.
+#
+# variable    		type deflt flag  short_name extra_action long_name
+#
+verbose d 0 -v verbose - verbosity
