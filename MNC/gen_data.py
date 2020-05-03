@@ -39,11 +39,11 @@ def work(gcx, sigma, train):
     s = np.random.randint(0, 2, 48)
     write_to_file(s, '_s/48')
 
-    # 2. transmitted code: t
+    # 2. transmitted code: t (groundtruth)
     os.system('./s2t -sfile _s/48 -k 48 -n 48 -Gfile codes/96.3.963/G -smn 1 -tfile _t/96 ')
     t = read_from_file('_t/96', int)
 
-    # 3. received code: y (groundtruth)
+    # 3. received code: y
     os.system(
         f'./t2y -tfile _t/96 -yfile _y/96 -gcx {gcx} -seed 322457 -n 96 -sigma {sigma} ')
     y = read_from_file('_y/96', float)
@@ -97,9 +97,9 @@ def gen_value():
         for _ in tqdm(range(args.num)):
             j = random.randint(0, 5)
             idx = j * 5 + i
-            t, m, y, err = work(l[idx][2], l[idx][3], args.train)
+            x, m, y, err = work(l[idx][2], l[idx][3], args.train)
 
-            node_feature.append([[elem, l[idx][2]] for elem in t])
+            node_feature.append([[elem, l[idx][2]] for elem in x])
             hop_feature.append(m)
             y_list.append(y)
             sigma_b_list.append(j)
@@ -124,6 +124,8 @@ def gen_value():
         'y': y,
         'sigma_b': sigma_b,
     }, filename)
+
+    error /= 48
 
     if not args.train:
         for i in range(5):
