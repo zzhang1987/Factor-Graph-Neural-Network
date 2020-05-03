@@ -96,7 +96,7 @@ def train(args, model, emodel_high, nn_idx_high, efeature_high, writer, model_di
                                                worker_init_fn=worker_init_fn)
 
     parameters = list(model.parameters()) + list(emodel_high.parameters())
-    optimizer = torch.optim.Adam(parameters, lr=3e-3)
+    optimizer = torch.optim.Adam(parameters, lr=1e-4, weight_decay=1e-5)
     scheduler = torch.optim.lr_scheduler.LambdaLR(
         optimizer, lr_lambda=lambda x: max(0.98**x, 1e-6))
     start_epoch = 0
@@ -178,8 +178,8 @@ def train(args, model, emodel_high, nn_idx_high, efeature_high, writer, model_di
             if gcnt % 10 == 0:
                 logging.info('epoch = {} bcnt = {} loss = {} acc = {}'.format(
                     epoch, bcnt, np.mean(loss_seq), np.mean(acc_seq)))
-                writer.add_scalar('syn_train/loss', loss.item(), gcnt)
-                writer.add_scalar('syn_train/acc', acc, gcnt)
+                writer.add_scalar('syn_train/loss', np.mean(loss_seq), gcnt)
+                writer.add_scalar('syn_train/acc', np.mean(acc_seq), gcnt)
                 loss_seq = []
                 acc_seq = []
 
@@ -253,9 +253,9 @@ def test(args, model, emodel_high, nn_idx_high, efeature_high):
         acc_seq.append(all_correct.item())
         tot += np.prod(label.shape) // 2
 
-    print(sum(acc_seq) / tot)
-    acc_class = np.divide(acc_cnt, acc_tot)
-    print(acc_class)
+    print(1 - sum(acc_seq) / tot)
+    err_class = 1 - np.divide(acc_cnt, acc_tot)
+    print(torch.FloatTensor(err_class))
 
 
 def main():
