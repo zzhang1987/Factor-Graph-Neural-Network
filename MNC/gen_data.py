@@ -14,12 +14,9 @@ def get_arguments():
     args.add_argument('--seed', type=int, default=42)
     return args.parse_args()
 
-# def get_snr(snr_db):
-#     return 10**(snr_db/10)
-
 
 def get_snr(snr_db):
-    return 10 ** (snr_db / 20)
+    return 10**(snr_db/10)
 
 
 def write_to_file(s, filename):
