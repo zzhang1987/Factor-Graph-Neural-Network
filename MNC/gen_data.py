@@ -14,8 +14,12 @@ def get_arguments():
     args.add_argument('--seed', type=int, default=42)
     return args.parse_args()
 
+# def get_snr(snr_db):
+#     return 10**(snr_db/10)
+
+
 def get_snr(snr_db):
-    return 10**(snr_db/10)
+    return 10 ** (snr_db / 20)
 
 
 def write_to_file(s, filename):
@@ -40,7 +44,8 @@ def work(gcx, sigma, train):
     write_to_file(s, '_s/48')
 
     # 2. transmitted code: t (groundtruth)
-    os.system('./s2t -sfile _s/48 -k 48 -n 48 -Gfile codes/96.3.963/G -smn 1 -tfile _t/96 ')
+    os.system(
+        './s2t -sfile _s/48 -k 48 -n 48 -Gfile codes/96.3.963/G -smn 1 -tfile _t/96 ')
     t = read_from_file('_t/96', int)
 
     # 3. received code: y
@@ -53,7 +58,8 @@ def work(gcx, sigma, train):
     if not train:
         # 4. sum-product decoding
         os.system(f'./y2b -yfile _y/96 -n 96 -bfile _b/96 -gcx {gcx} ')
-        os.system('./zb2x -bfile _b/96 -zfixed 0 -k 48 -n 48 -Afile codes/96.3.963/A2 -xfile _x/48gc -xso 1 -bndloops 100 ')
+        os.system(
+            './zb2x -bfile _b/96 -zfixed 0 -k 48 -n 48 -Afile codes/96.3.963/A2 -xfile _x/48gc -xso 1 -bndloops 100 ')
         x = read_from_file('_x/48gc', int)
 
         # 5. calculate BER
@@ -80,7 +86,8 @@ def gen_value():
     for i, x in enumerate(sigma_b):
         for j, y in enumerate(sigma_c):
             sigma_a = x / y
-            print(f'sigma_b = {x}, snr_db = {snr_db[j]}, snr = {snr[j]}, sigma_a = {sigma_a}')
+            print(
+                f'sigma_b = {x}, snr_db = {snr_db[j]}, snr = {snr[j]}, sigma_a = {sigma_a}')
             l.append((x, snr_db[j], snr[j], sigma_a))
 
     node_feature = []
@@ -107,7 +114,8 @@ def gen_value():
             if not args.train:
                 error[i][j].append(err)
 
-    node_feature = torch.FloatTensor(np.stack(node_feature)).permute(0, 2, 1).unsqueeze(-1)
+    node_feature = torch.FloatTensor(
+        np.stack(node_feature)).permute(0, 2, 1).unsqueeze(-1)
     hop_feature = torch.LongTensor(np.stack(hop_feature)).unsqueeze(-1)
     y = torch.LongTensor(np.stack(y_list))
     sigma_b = torch.LongTensor(np.stack(sigma_b_list))
