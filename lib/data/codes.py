@@ -106,7 +106,11 @@ class Codes(Dataset):
         hop = self.generator.get_highorder_feature(node_feature)
         hop_feature = np.expand_dims(hop.T, -1)
 
-        return self.node_feature[idx], hop_feature, self.y[idx], self.sigma_b[idx]
+        node_feature = self.node_feature[idx].squeeze()
+        # print(node_feature[1, :])
+        node_feature[1, :] = 10 * torch.log10(node_feature[1, :])
+        # print(node_feature)
+        return node_feature.unsqueeze(-1), hop_feature, self.y[idx], self.sigma_b[idx]
 
 
 class ContinusCodes(Dataset):

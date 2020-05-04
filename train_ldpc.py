@@ -163,11 +163,15 @@ def train(args, model, emodel_high, nn_idx_high, efeature_high, writer, model_di
                                 nn_idx_high.repeat(bsize, 1, 1),
                                 etype_high.repeat(bsize, 1, 1, 1)
                             ]])
-
-            pred = pred.squeeze(-1).permute(0, 2, 1).contiguous()
+            # print(pred.shape)
             # print(label.shape)
-            loss = torch.nn.functional.cross_entropy(pred.view(-1, 2),
-                                                     label.view(-1))
+
+            pred = pred.squeeze()[:, :48].contiguous()
+            label = label[:, :48].contiguous()
+
+            # print(label.shape)
+            loss = torch.nn.functional.binary_cross_entropy_with_logits(
+                pred.view(-1), label.view(-1).float())
             loss.backward()
             torch.nn.utils.clip_grad_norm(parameters, 1.0)
 
@@ -175,8 +179,8 @@ def train(args, model, emodel_high, nn_idx_high, efeature_high, writer, model_di
             loss_seq.append(loss.item())
             gcnt += 1
 
-            pred_int = pred.argmax(dim=-1)
-            all_correct = torch.sum(pred_int == label)
+            pred_int = (pred[:, :48] > 0)
+            all_correct = torch.sum(pred_int.long() == label)
             acc = all_correct.item() / np.prod(label.shape)
 
             acc_seq.append(acc)
@@ -220,7 +224,7 @@ def test(args, model, emodel_high, nn_idx_high, efeature_high):
     model.eval()
     emodel_high.eval()
 
-    SNR = [1, 1.2589, 1.5849, 1.9953, 2.5119]
+    SNR = [0, 1, 2, 3, 4]
     for _, (nfeature, hops, label, sigma_b) in tqdm(enumerate(test_loader)):
         if args.use_cuda:
             # print(nfeature)
@@ -231,6 +235,7 @@ def test(args, model, emodel_high, nn_idx_high, efeature_high):
                 = nfeature.cuda(), hops.cuda(), label.cuda(), sigma_b.cuda()
         cur_SNR = nfeature[:, 1, 0, 0]
         hops = hops.float()
+        # print(cur_SNR)
 
         if len(nfeature.shape) == 3:
             nfeature = nfeature.unsqueeze(-1)
@@ -245,8 +250,8 @@ def test(args, model, emodel_high, nn_idx_high, efeature_high):
                 etype_high.repeat(bsize, 1, 1, 1)
             ]])
 
-        pred = pred.squeeze(-1).permute(0, 2, 1).contiguous()
-        pred_int = pred.argmax(dim=-1)
+        pred = pred.squeeze().contiguous()
+        pred_int = (pred > 0).long()
 
         for i, elem in enumerate(SNR):
             for b in range(6):
@@ -276,12 +281,12 @@ def main():
     hop_order = 6
     if args.model_name == 'mp_nn_factor':
         model = factor_mpnn(nfeature_dim, [hop_order],
-                            [64, 64, 128, 128, 256, 256, 128, 128, 64, 64, 2],
-                            [2])
+                            [64, 64, 128, 128, 256, 256, 128, 128, 64, 64, 1],
+                            [8])
 
         emodel_high = torch.nn.Sequential(torch.nn.Conv2d(2, 64, 1),
                                           torch.nn.ReLU(inplace=True),
-                                          torch.nn.Conv2d(64, 2, 1))
+                                          torch.nn.Conv2d(64, 8, 1))
 
     def get_model_description():
         return str(model) + str(emodel_high)
