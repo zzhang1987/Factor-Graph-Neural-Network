@@ -125,7 +125,7 @@ class ContinusCodes(Dataset):
 
     def __getitem__(self, index):
         sigma_b = np.random.choice(self.sigma_b)
-        snr_db = np.random.choice(self.snr_db)
+        snr_db = np.random.choice(self.snr_db, p=[0.3, 0.3, 0.2, 0.1, 0.1])
 
         orig, trans, trans_noizy = self.generator(snr_db, sigma_b)
         hop = self.generator.get_highorder_feature(trans_noizy)

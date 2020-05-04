@@ -206,7 +206,7 @@ def test(args, model, emodel_high, nn_idx_high, efeature_high):
     test_dataset = lib.data.Codes(args.test_path, train=False)
 
     test_loader = torch.utils.data.DataLoader(test_dataset,
-                                              batch_size=10,
+                                              batch_size=100,
                                               shuffle=False,
                                               num_workers=8,
                                               worker_init_fn=worker_init_fn)
@@ -243,15 +243,15 @@ def test(args, model, emodel_high, nn_idx_high, efeature_high):
 
         etype_high = emodel_high(efeature_high)
         bsize = nfeature.shape[0]
+        with torch.no_grad():
+            pred, _ = model(
+                nfeature, [hops],
+                [[
+                    nn_idx_high.repeat(bsize, 1, 1),
+                    etype_high.repeat(bsize, 1, 1, 1)
+                ]])
 
-        pred, _ = model(
-            nfeature, [hops],
-            [[
-                nn_idx_high.repeat(bsize, 1, 1),
-                etype_high.repeat(bsize, 1, 1, 1)
-            ]])
-
-        pred = pred.squeeze().contiguous()
+            pred = pred.squeeze().contiguous()
         pred_int = (pred > 0).long()
 
         for i, elem in enumerate(SNR):
