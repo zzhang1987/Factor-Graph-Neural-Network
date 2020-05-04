@@ -114,13 +114,18 @@ xt::pyarray<T> t2y(xt::pyarray<long int> t, T snr_db, T sigma_b, T rho){
         }
     }
     return res;
-    
+}
+
+void init_seed(int seed){
+    xt::random::seed(seed);
 }
 
 PYBIND11_MODULE(MNC, m) {
     xt::import_numpy();
     m.doc() = "Test module for xtensor python bindings";
     m.def("s2t", s2t<long int>, "Non-uniform motion blur convolution.");
+    m.def("t2y", t2y<double>, "t2y");
+    m.def("init_seed", init_seed, "init_seed");
 }
 
 #undef DNT
