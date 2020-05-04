@@ -206,7 +206,7 @@ def test(args, model, emodel_high, nn_idx_high, efeature_high):
     test_dataset = lib.data.Codes(args.test_path, train=False)
 
     test_loader = torch.utils.data.DataLoader(test_dataset,
-                                              batch_size=args.batch_size,
+                                              batch_size=10,
                                               shuffle=False,
                                               num_workers=8,
                                               worker_init_fn=worker_init_fn)
@@ -234,6 +234,7 @@ def test(args, model, emodel_high, nn_idx_high, efeature_high):
             nfeature, hops, label, sigma_b \
                 = nfeature.cuda(), hops.cuda(), label.cuda(), sigma_b.cuda()
         cur_SNR = nfeature[:, 1, 0, 0]
+        # print(cur_SNR)
         hops = hops.float()
         # print(cur_SNR)
 
@@ -260,8 +261,8 @@ def test(args, model, emodel_high, nn_idx_high, efeature_high):
                                            == label[indice, :48])
                 acc_tot[i][b] += torch.sum(indice) * 48
 
-        parameters = list(model.parameters()) + list(emodel_high.parameters())
-        torch.nn.utils.clip_grad_norm(parameters, 1.0)
+        # parameters = list(model.parameters()) + list(emodel_high.parameters())
+        # torch.nn.utils.clip_grad_norm(parameters, 1.0)
 
         all_correct = torch.sum(pred_int[:, :48] == label[:, :48])
 
