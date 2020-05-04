@@ -60,7 +60,7 @@ class iid_mapping_bn(torch.nn.Module):
     i.i.d mapping with batch norm for each node
     """
 
-    def __init__(self, nin, nout, bias=True):
+    def __init__(self, nin, nout, bias=True, bn=True):
         """
         :param nin: number of input units
         :param nout: number of output units
