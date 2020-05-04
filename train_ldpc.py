@@ -173,7 +173,7 @@ def train(args, model, emodel_high, nn_idx_high, efeature_high, writer, model_di
             loss = torch.nn.functional.binary_cross_entropy_with_logits(
                 pred.view(-1), label.view(-1).float())
             loss.backward()
-            torch.nn.utils.clip_grad_norm(parameters, 1.0)
+            # torch.nn.utils.clip_grad_norm(parameters, 1.0)
 
             optimizer.step()
             loss_seq.append(loss.item())
