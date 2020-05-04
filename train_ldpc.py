@@ -87,7 +87,9 @@ def worker_init_fn(idx):
 
 
 def train(args, model, emodel_high, nn_idx_high, efeature_high, writer, model_dir):
-    train_dataset = lib.data.Codes(args.train_path)
+    #train_dataset = lib.data.Codes(args.train_path)
+
+    train_dataset = lib.data.ContinusCodes()
 
     train_loader = torch.utils.data.DataLoader(train_dataset,
                                                batch_size=args.batch_size,
@@ -135,6 +137,9 @@ def train(args, model, emodel_high, nn_idx_high, efeature_high, writer, model_di
         for bcnt, (nfeature, hops, label, _) in tqdm(enumerate(train_loader)):
             optimizer.zero_grad()
             if args.use_cuda:
+                # print(nfeature)
+                # print(hops)
+                # print(label)
                 nfeature, hops, label \
                     = nfeature.cuda(), hops.cuda(), label.cuda()
             hops = hops.float()
@@ -160,6 +165,7 @@ def train(args, model, emodel_high, nn_idx_high, efeature_high, writer, model_di
                             ]])
 
             pred = pred.squeeze(-1).permute(0, 2, 1).contiguous()
+            # print(label.shape)
             loss = torch.nn.functional.cross_entropy(pred.view(-1, 2),
                                                      label.view(-1))
             loss.backward()
@@ -217,9 +223,13 @@ def test(args, model, emodel_high, nn_idx_high, efeature_high):
     SNR = [1, 1.2589, 1.5849, 1.9953, 2.5119]
     for _, (nfeature, hops, label, sigma_b) in tqdm(enumerate(test_loader)):
         if args.use_cuda:
+            # print(nfeature)
+            # print(hops)
+            # print(label)
+            # print(sigma_b)
             nfeature, hops, label, sigma_b \
                 = nfeature.cuda(), hops.cuda(), label.cuda(), sigma_b.cuda()
-        cur_SNR = nfeature[:,1,0,0]
+        cur_SNR = nfeature[:, 1, 0, 0]
         hops = hops.float()
 
         if len(nfeature.shape) == 3:
@@ -241,7 +251,8 @@ def test(args, model, emodel_high, nn_idx_high, efeature_high):
         for i, elem in enumerate(SNR):
             for b in range(6):
                 indice = (sigma_b == b) & (abs(cur_SNR-elem) < 1e-3)
-                acc_cnt[i][b] += torch.sum(pred_int[indice, :48] == label[indice, :48])
+                acc_cnt[i][b] += torch.sum(pred_int[indice, :48]
+                                           == label[indice, :48])
                 acc_tot[i][b] += torch.sum(indice) * 48
 
         parameters = list(model.parameters()) + list(emodel_high.parameters())
@@ -262,7 +273,7 @@ def main():
     args = parse_args()
 
     nfeature_dim = 2
-    hop_order = 9
+    hop_order = 6
     if args.model_name == 'mp_nn_factor':
         model = factor_mpnn(nfeature_dim, [hop_order],
                             [64, 64, 128, 128, 256, 256, 128, 128, 64, 64, 2],
@@ -288,7 +299,7 @@ def main():
 
     if args.train:
         subdir = f'train_syn_hop_factor_{args.model_name}_at_{datetime.datetime.now().strftime("%Y-%m-%d_%H:%M:%S")}'
-        utils.init_logger('./logs/', subdir, print_log=False)
+        utils.init_logger('./logs/', subdir, print_log=True)
         logging.info(str(args))
         logdir = f'./tf_logs/{subdir}'
         print(f'logdir = {logdir}')

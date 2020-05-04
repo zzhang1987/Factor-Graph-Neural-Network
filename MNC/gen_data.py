@@ -14,6 +14,7 @@ def get_arguments():
     args.add_argument('--seed', type=int, default=42)
     return args.parse_args()
 
+
 def get_snr(snr_db):
     return 10**(snr_db/10)
 
@@ -40,7 +41,8 @@ def work(gcx, sigma, train):
     write_to_file(s, '_s/48')
 
     # 2. transmitted code: t (groundtruth)
-    os.system('./s2t -sfile _s/48 -k 48 -n 48 -Gfile codes/96.3.963/G -smn 1 -tfile _t/96 ')
+    os.system(
+        './s2t -sfile _s/48 -k 48 -n 48 -Gfile codes/96.3.963/G -smn 1 -tfile _t/96 ')
     t = read_from_file('_t/96', int)
 
     # 3. received code: y
@@ -53,18 +55,20 @@ def work(gcx, sigma, train):
     if not train:
         # 4.1 [normal LDPC] sum-product decoding
         os.system(f'./y2b -yfile _y/96 -n 96 -bfile _b/96 -gcx {gcx} ')
-        os.system('./zb2x -bfile _b/96 -zfixed 0 -k 48 -n 48 -Afile codes/96.3.963/A2 -xfile _x/48gc -xso 1 -bndloops 100 ')
+        os.system(
+            './zb2x -bfile _b/96 -zfixed 0 -k 48 -n 48 -Afile codes/96.3.963/A2 -xfile _x/48gc -xso 1 -bndloops 100 ')
         x = read_from_file('_x/48gc', int)
 
         # 4.2 [normal LDPC] calculate BER
-        error = sum(a!=b for a,b in zip(s,x))
+        error = sum(a != b for a, b in zip(s, x))
 
         # 5. [bursty LDPC] sum-product decoding
         gcx_prime = 1 / np.sqrt(1/(gcx**2) + 12/5)
         os.system(f'./y2b -yfile _y/96 -n 96 -bfile _b/96 -gcx {gcx_prime} ')
-        os.system('./zb2x -bfile _b/96 -zfixed 0 -k 48 -n 48 -Afile codes/96.3.963/A2 -xfile _x/48gc -xso 1 -bndloops 100 ')
+        os.system(
+            './zb2x -bfile _b/96 -zfixed 0 -k 48 -n 48 -Afile codes/96.3.963/A2 -xfile _x/48gc -xso 1 -bndloops 100 ')
         x = read_from_file('_x/48gc', int)
-        error_prime = sum(a!=b for a,b in zip(s,x))
+        error_prime = sum(a != b for a, b in zip(s, x))
 
         # 6. [bits baseline]
         error_b = 0
@@ -98,7 +102,6 @@ def process_error(s, error):
     }, f'err_{s}.pt')
 
 
-
 def gen_value():
     args = get_arguments()
 
@@ -115,7 +118,8 @@ def gen_value():
     for i, x in enumerate(sigma_b):
         for j, y in enumerate(sigma_c):
             sigma_a = x / y
-            print(f'sigma_b = {x}, snr_db = {snr_db[j]}, snr = {snr[j]}, sigma_a = {sigma_a}')
+            print(
+                f'sigma_b = {x}, snr_db = {snr_db[j]}, snr = {snr[j]}, sigma_a = {sigma_a}')
             l.append((x, snr_db[j], snr[j], sigma_a))
 
     node_feature = []
@@ -132,7 +136,8 @@ def gen_value():
         for _ in tqdm(range(args.num)):
             j = random.randint(0, 5)
             idx = j * 5 + i
-            x, m, y, err, err_prime, err_b = work(l[idx][2], l[idx][3], args.train)
+            x, m, y, err, err_prime, err_b = work(
+                l[idx][2], l[idx][3], args.train)
 
             node_feature.append([[elem, l[idx][2]] for elem in x])
             hop_feature.append(m)
@@ -144,7 +149,8 @@ def gen_value():
                 error_prime[i][j].append(err_prime)
                 error_b[i][j].append(err_b)
 
-    node_feature = torch.FloatTensor(np.stack(node_feature)).permute(0, 2, 1).unsqueeze(-1)
+    node_feature = torch.FloatTensor(
+        np.stack(node_feature)).permute(0, 2, 1).unsqueeze(-1)
     hop_feature = torch.LongTensor(np.stack(hop_feature)).unsqueeze(-1)
     y = torch.LongTensor(np.stack(y_list))
     sigma_b = torch.LongTensor(np.stack(sigma_b_list))
@@ -161,7 +167,6 @@ def gen_value():
         'y': y,
         'sigma_b': sigma_b,
     }, filename)
-
 
     if not args.train:
         process_error('ldpc', error)
