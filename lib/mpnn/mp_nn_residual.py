@@ -23,12 +23,12 @@ class mp_conv_residual(base_mp_nn):
         super(mp_conv_residual, self).__init__()
         self.conv1 = torch.nn.Sequential(torch.nn.Conv2d(nin, nmed, 1),
                                          SyncBatchNorm(nmed),
-                                         torch.nn.ReLU(inplace=True))
+                                         torch.nn.LeakyReLU(inplace=True))
         self.mp_conv = mp_conv_v2(nmed, nmed, netype, extension=extension)
 
         self.conv2 = torch.nn.Sequential(torch.nn.Conv2d(nmed, nin, 1),
                                          SyncBatchNorm(nin),
-                                         torch.nn.ReLU(inplace=True))
+                                         torch.nn.LeakyReLU(inplace=True))
         self.with_residual = with_residual
         self.with_hop = with_hop
 

@@ -98,11 +98,12 @@ def train(args, model, emodel_high, nn_idx_high, efeature_high, writer, model_di
                                                worker_init_fn=worker_init_fn)
 
     parameters = list(model.parameters()) + list(emodel_high.parameters())
-    optimizer = torch.optim.Adam(parameters, lr=1e-2, weight_decay=1e-8)
+    optimizer = torch.optim.Adam(
+        parameters, lr=1e-4,  weight_decay=1e-8)
 
     def lr_sched(x, start=10):
         if x <= start:
-            return 1e-8 + (1.0 / start) * x
+            return max(1e-2, (1.0 / start) * x)
         else:
             return max(0.99 ** (x - start), 1e-6)
     scheduler = torch.optim.lr_scheduler.LambdaLR(
@@ -294,7 +295,6 @@ def main():
         model = factor_mpnn(nfeature_dim, [hop_order],
                             [64, 64, 64, 128,  128, 64, 64, 1],
                             [8],
-                            final_filter=residual_link,
                             skip_link={3: 2, 4: 1, 5: 0})
 
         emodel_high = torch.nn.Sequential(torch.nn.Conv2d(2, 64, 1),

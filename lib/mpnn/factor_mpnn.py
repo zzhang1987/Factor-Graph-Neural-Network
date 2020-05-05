@@ -1,6 +1,6 @@
 import torch
 from .mp_nn import mp_conv_v2
-from .base_model import iid_mapping
+from .base_model import iid_mapping, iid_mapping_bn
 from .mp_nn_residual import mp_conv_residual
 from .base_model import base_mp_nn
 
@@ -69,7 +69,7 @@ class factor_mpnn(torch.nn.Module):
                 cmodule.append(cmp_nn)
             self.mp_nn_modules.append(cmodule)
             if(idx < len(dim_mapping_list) - 2):
-                merge_module = iid_mapping(nout * self.nfactor_types, nout)
+                merge_module = iid_mapping_bn(nout * self.nfactor_types, nout)
             else:
                 merge_module = torch.nn.Conv2d(
                     nout * self.nfactor_types, nout, 1, bias=False)
@@ -107,6 +107,7 @@ class factor_mpnn(torch.nn.Module):
                 cffeatures.append(cfeature[:, :, nnode:, :])
             cnfeatures = torch.cat(cnfeatures, dim=1)
             nfeatures = self.mp_merge_modules[midx](cnfeatures)
+            # print('Layer _{}'.format(midx), self.mp_merge_modules[midx])
             ffeatures = cffeatures
 
             if midx in self.skip_link.keys():
@@ -120,5 +121,6 @@ class factor_mpnn(torch.nn.Module):
 
         if self.final_filter is not None:
             nfeatures = self.final_filter(nfeatures, node_features)
-
+        # print(nfeatures[0, ...].squeeze())
+        # print(nfeatures[1, ...].squeeze())
         return nfeatures, ffeatures
