@@ -35,6 +35,7 @@
 #include "xtensor/xmath.hpp"
 #include "xtensor/xadapt.hpp"
 #include "xtensor/xrandom.hpp"
+#include <stdio.h>
 #define FORCE_IMPORT_ARRAY
 #include "xtensor-python/pyarray.hpp"
 
@@ -58,6 +59,7 @@ xt::pyarray<T> s2t(const xt::pyarray<T>& source,
     s = mod2mat_allocate(K, 1);
     t = mod2mat_allocate(N, 1);
     G = mod2mat_read(fp, &code);
+    fclose(fp);
     done = 0;
     int message = 0;
     int offset = 0;
@@ -66,7 +68,7 @@ xt::pyarray<T> s2t(const xt::pyarray<T>& source,
         message ++;
         for( b = 0; b < K; b++){
             if(offset + b >= tsize){
-                std::cout << "Done" << std::endl;
+                // std::cout << "Done" << std::endl;
                 done = 1;
                 break;
             }
@@ -93,8 +95,11 @@ xt::pyarray<T> s2t(const xt::pyarray<T>& source,
     }while(!done);
     
     int res_size = res.size();
-    std::cout << res.size() << std::endl;
+    // std::cout << res.size() << std::endl;
     xt::xarray<T> final_res = xt::adapt(res, {res_size});
+    mod2mat_free(s);
+    mod2mat_free(t);
+    mod2mat_free(G);
     return final_res;
 }
 
@@ -103,7 +108,7 @@ template <typename T>
 xt::pyarray<T> t2y(xt::pyarray<long int> t, T snr_db, T sigma_b, T rho){
     T gcx = std::pow(10, snr_db / 10.0);
     size_t size = t.shape()[0];
-    xt::xarray<T> res = gcx * xt::pyarray<T>(t) + xt::random::randn<T>({size});
+    xt::xarray<T> res = 2 * gcx * (xt::pyarray<T>(t) - 0.5) + xt::random::randn<T>({size});
 
     T sigma = gcx * sigma_b;
     for(int i = 0; i < size; i++){

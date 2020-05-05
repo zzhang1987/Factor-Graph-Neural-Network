@@ -16,7 +16,9 @@ class factor_mpnn(torch.nn.Module):
                  dim_mapping_list,
                  netype_list,
                  gnn_immediate_dim=64,
-                 max_mpnn_dim=64):
+                 max_mpnn_dim=64,
+                 final_filter=None,
+                 skip_link={}):
         """
         :param node_feature_dim: dimension of input node feature. 
         :param factor_feature_dim_list: a list of factor feature dimensions.
@@ -43,6 +45,7 @@ class factor_mpnn(torch.nn.Module):
 
         self.mp_nn_modules = []
         self.mp_merge_modules = []
+        self.final_filter = final_filter
         for idx in range(len(dim_mapping_list) - 1):
             cmodule = []
             nin = dim_mapping_list[idx]
@@ -59,7 +62,7 @@ class factor_mpnn(torch.nn.Module):
                     else:
                         cmp_nn = torch.nn.Sequential(
                             torch.nn.Conv2d(nin, nout, 1),
-                            torch.nn.BatchNorm2d(nout),
+                            torch.nn.InstanceNorm2d(nout),
                             torch.nn.ReLU(inplace=True))
 
                 self.add_module('mp_nn_{}_{}'.format(idx, jdx), cmp_nn)
@@ -73,6 +76,7 @@ class factor_mpnn(torch.nn.Module):
 
             self.add_module('merge_module_{}'.format(idx), merge_module)
             self.mp_merge_modules.append(merge_module)
+            self.skip_link = skip_link
 
     def forward(self, node_features, factor_features, graph_structures):
         """
@@ -87,6 +91,7 @@ class factor_mpnn(torch.nn.Module):
             m(f) for f, m in zip(factor_features, self.mapping_modules[1:])
         ]
 
+        all_inter_features = []
         for midx, modules in enumerate(self.mp_nn_modules):
             cnfeatures = []
             cffeatures = []
@@ -103,5 +108,17 @@ class factor_mpnn(torch.nn.Module):
             cnfeatures = torch.cat(cnfeatures, dim=1)
             nfeatures = self.mp_merge_modules[midx](cnfeatures)
             ffeatures = cffeatures
+
+            if midx in self.skip_link.keys():
+                tidx = self.skip_link[midx]
+                onfeatures, offeatures = all_inter_features[tidx]
+                nfeatures = nfeatures + onfeatures
+                nffeatures = [
+                    ff + off for (ff, off) in zip(ffeatures, offeatures)]
+                ffeatures = nffeatures
+            all_inter_features.append([nfeatures, ffeatures])
+
+        if self.final_filter is not None:
+            nfeatures = self.final_filter(nfeatures, node_features)
 
         return nfeatures, ffeatures
