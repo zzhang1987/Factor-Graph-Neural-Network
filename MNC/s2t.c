@@ -56,7 +56,7 @@ void main ( int argc, char *argv[] )
 
   c_defaults ( &c ) ; 
   if ( process_command (argc, argv, &c ) < 0 ) exit (0) ;
-  fprintf(stderr,"s2t running\n") ;
+  /* fprintf(stderr,"s2t running\n") ; */
   fflush(stderr);
 
 /* G is read in in radford format . Expect it to be 

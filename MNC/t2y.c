@@ -44,6 +44,8 @@ void main ( int argc, char *argv[] )
   FILE *fpy , *fpt ;
   int b , bit ;
  double y ;
+ double rho;
+
 
   c_defaults ( &c ) ; 
   if ( process_command (argc, argv, &c ) < 0 ) exit (0) ;
@@ -95,7 +97,14 @@ void main ( int argc, char *argv[] )
 	  exit ( 0 ) ; 
 	}     
       }
-      y = ( bit ? c.gcx : -c.gcx ) + rann() + rann() * c.sigma * c.rho;
+      rho = rand_uniform();
+      if(rho > c.rho){
+          rho = 0;
+      }
+      else{
+          rho = 1.0;
+      }
+      y = ( bit ? c.gcx : -c.gcx ) + rann() + rann() * c.sigma * rho;
       fprintf ( fpy , "%3.6g\n" , y ) ; 
       count ++ ; 
     }

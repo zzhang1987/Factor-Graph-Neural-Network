@@ -47,24 +47,59 @@ def work(gcx, sigma, train):
 
     # 3. received code: y
     os.system(
-        f'./t2y -tfile _t/96 -yfile _y/96 -gcx {gcx} -seed {np.random.randint(0, 65536)} -n 96 -sigma {sigma} ')
+        f'./t2y -tfile _t/96 -yfile _y/96 -gcx {gcx} -seed {np.random.randint(0, 2**31)} -n 96 -sigma {sigma} ')
     y = read_from_file('_y/96', float)
 
-    error = 0
+    error = error_prime = error_b = 0
 
     if not train:
-        # 4. sum-product decoding
+        # 4.1 [normal LDPC] sum-product decoding
         os.system(f'./y2b -yfile _y/96 -n 96 -bfile _b/96 -gcx {gcx} ')
         os.system(
             './zb2x -bfile _b/96 -zfixed 0 -k 48 -n 48 -Afile codes/96.3.963/A2 -xfile _x/48gc -xso 1 -bndloops 100 ')
         x = read_from_file('_x/48gc', int)
 
-        # 5. calculate BER
-        for a, b in zip(s, x):
-            if a != b:
-                error += 1
+        # 4.2 [normal LDPC] calculate BER
+        error = sum(a != b for a, b in zip(s, x))
 
-    return y, np.ones((9, 48)), t, error
+        # 5. [bursty LDPC] sum-product decoding
+        gcx_prime = 1 / np.sqrt(1/(gcx**2) + 12/5)
+        os.system(f'./y2b -yfile _y/96 -n 96 -bfile _b/96 -gcx {gcx_prime} ')
+        os.system(
+            './zb2x -bfile _b/96 -zfixed 0 -k 48 -n 48 -Afile codes/96.3.963/A2 -xfile _x/48gc -xso 1 -bndloops 100 ')
+        x = read_from_file('_x/48gc', int)
+        error_prime = sum(a != b for a, b in zip(s, x))
+
+        # 6. [bits baseline]
+        error_b = 0
+        for a, b in zip(t, y):
+            p1 = st.norm(gcx, 1).pdf(b)
+            p2 = st.norm(-gcx, 1).pdf(b)
+            error_b += (p1 >= p2) != a
+
+    return y, np.ones((9, 48)), t, error, error_prime, error_b
+
+
+def process_error(s, error):
+    print(f'======       {s}        ======')
+    err_mean = np.zeros((5, 6))
+    err_err = np.zeros((5, 6))
+
+    for i in range(5):
+        for j in range(6):
+            err_mean[i][j] = np.mean(error[i][j])
+            err_err[i][j] = st.sem(error[i][j])
+
+    err_mean /= 48
+    err_err /= 48**2
+
+    print(err_mean)
+    print(err_err)
+
+    torch.save({
+        'err_mean': err_mean,
+        'err_err': err_err,
+    }, f'err_{s}.pt')
 
 
 def gen_value():
@@ -94,14 +129,15 @@ def gen_value():
 
     if not args.train:
         error = [[[] for j in range(6)] for i in range(5)]
-        err_mean = np.zeros((5, 6))
-        err_err = np.zeros((5, 6))
+        error_prime = [[[] for j in range(6)] for i in range(5)]
+        error_b = [[[] for j in range(6)] for i in range(5)]
 
     for i in tqdm(range(5)):
         for _ in tqdm(range(args.num)):
             j = random.randint(0, 5)
             idx = j * 5 + i
-            x, m, y, err = work(l[idx][2], l[idx][3], args.train)
+            x, m, y, err, err_prime, err_b = work(
+                l[idx][2], l[idx][3], args.train)
 
             node_feature.append([[elem, l[idx][2]] for elem in x])
             hop_feature.append(m)
@@ -110,6 +146,8 @@ def gen_value():
 
             if not args.train:
                 error[i][j].append(err)
+                error_prime[i][j].append(err_prime)
+                error_b[i][j].append(err_b)
 
     node_feature = torch.FloatTensor(
         np.stack(node_feature)).permute(0, 2, 1).unsqueeze(-1)
@@ -130,21 +168,10 @@ def gen_value():
         'sigma_b': sigma_b,
     }, filename)
 
-    error /= 48
-
     if not args.train:
-        for i in range(5):
-            for j in range(6):
-                err_mean[i][j] = np.mean(error[i][j])
-                err_err[i][j] = st.sem(error[i][j])
-
-        print(err_mean)
-        print(err_err)
-
-        torch.save({
-            'err_mean': err_mean,
-            'err_err': err_err,
-        }, 'err.pt')
+        process_error('ldpc', error)
+        process_error('ldpc-bursty', error_prime)
+        process_error('bits-baseline', error_b)
 
 
 gen_value()

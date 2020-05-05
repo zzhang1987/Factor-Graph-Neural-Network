@@ -65,7 +65,12 @@ class factor_mpnn(torch.nn.Module):
                 self.add_module('mp_nn_{}_{}'.format(idx, jdx), cmp_nn)
                 cmodule.append(cmp_nn)
             self.mp_nn_modules.append(cmodule)
-            merge_module = iid_mapping(nout * self.nfactor_types, nout)
+            if(idx < len(dim_mapping_list) - 2):
+                merge_module = iid_mapping(nout * self.nfactor_types, nout)
+            else:
+                merge_module = torch.nn.Conv2d(
+                    nout * self.nfactor_types, nout, 1, bias=False)
+
             self.add_module('merge_module_{}'.format(idx), merge_module)
             self.mp_merge_modules.append(merge_module)
 
