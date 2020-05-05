@@ -23,7 +23,7 @@ class mp_conv_v2(base_mp_nn):
                  bn=True,
                  extension=mp_conv_type.ORIG_WITH_DIFF,
                  activation_fn='relu',
-                 aggregtor='max'):
+                 aggregtor='softmax'):
         """
         :param nin: dimension of input features
         :param nou: dimension of output features
@@ -73,6 +73,13 @@ class mp_conv_v2(base_mp_nn):
                     return res
 
                 self.aggregtor = agg_max
+
+            elif aggregtor == 'softmax':
+                def agg_softmax(x, gamma=10):
+                    res = 1.0 / gamma * \
+                        torch.logsumexp(gamma * x, dim=3, keepdim=True)
+                    return res
+                self.aggregtor = agg_softmax
             elif aggregtor == 'mean':
                 self.aggregtor = lambda x: torch.mean(x, dim=3, keepdim=True)
 
