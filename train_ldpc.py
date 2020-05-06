@@ -78,7 +78,7 @@ def train(args, model, emodel_high, writer, model_dir):
 
     parameters = list(model.parameters()) + list(emodel_high.parameters())
     optimizer = torch.optim.Adam(
-        parameters, lr=1e-4,  weight_decay=1e-8)
+        parameters, lr=1e-2,  weight_decay=1e-8)
 
     def lr_sched(x, start=10):
         if x <= start:
@@ -151,6 +151,8 @@ def train(args, model, emodel_high, writer, model_dir):
                             ]])
             # print(pred.shape)
             # print(label.shape)
+
+            # print(pred.squeeze()[0, :])
 
             pred = pred.squeeze()[:, :48].contiguous()
             label = label[:, :48].contiguous()
