@@ -75,10 +75,11 @@ class mp_conv_v2(base_mp_nn):
                 self.aggregtor = agg_max
 
             elif aggregtor == 'softmax':
-                def agg_softmax(x, gamma=10):
+                def agg_softmax(x, gamma=3):
                     res = 1.0 / gamma * \
                         torch.logsumexp(gamma * x, dim=3, keepdim=True)
                     return res
+                # print('Here')
                 self.aggregtor = agg_softmax
             elif aggregtor == 'mean':
                 self.aggregtor = lambda x: torch.mean(x, dim=3, keepdim=True)
