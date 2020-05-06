@@ -38,12 +38,12 @@ static void c_defaults ( s2t_control * ) ;
 static int    process_command ( int , char ** , s2t_control * ) ; 
 static void   print_usage ( char ** , FILE * ,  s2t_control *  );
 
-void   main ( int , char ** ) ;
+int   main ( int , char ** ) ;
 
 /*
         MAIN
                      */
-void main ( int argc, char *argv[] )
+int main ( int argc, char *argv[] )
 {
   s2t_control           c ;
 

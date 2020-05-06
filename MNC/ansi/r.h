@@ -36,8 +36,8 @@
 
 /* list of functions that should be accepted from maths library */
 
-void   srandom ( long ) ;
-int    random ( void ) ; 
+//void   srandom ( long ) ;
+//int    random ( void ) ; 
 /*
 double	drand48( ) ;
 void 	srand48( long ) ;

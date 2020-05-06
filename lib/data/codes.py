@@ -7,6 +7,7 @@ import os
 import tempfile
 import subprocess
 from .MNC import init_seed, s2t, t2y
+import pdb
 
 
 def get_snr(snr_db):
@@ -127,6 +128,7 @@ class Codes(Dataset):
         # print(node_feature[1, :])
         node_feature[1, :] = 10 * torch.log10(node_feature[1, :])
         # print(node_feature)
+        # pdb.set_trace()
         return node_feature.unsqueeze(-1), hop_feature, nn_idx, etype, efeature, self.y[idx], self.sigma_b[idx]
 
 

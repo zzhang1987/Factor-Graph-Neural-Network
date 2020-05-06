@@ -5,6 +5,7 @@ import random
 import scipy.stats as st
 import torch
 from tqdm import tqdm
+from MNC import s2t, t2y
 
 
 def get_arguments():
@@ -16,7 +17,7 @@ def get_arguments():
 
 
 def get_snr(snr_db):
-    return 10**(snr_db/10)
+    return 10**(snr_db/20)
 
 
 def write_to_file(s, filename):
@@ -33,23 +34,23 @@ def read_from_file(filename, type):
     return ret
 
 
-def work(gcx, sigma, train):
-    print(f'gcx = {gcx}, sigma = {sigma}')
+def work(snr_db, sigma_b, train):
+    print(f'snr_db = {snr_db}, sigma_b = {sigma_b}')
 
+    gcx = get_snr(snr_db)
     # 1. original code: s
     s = np.random.randint(0, 2, 48)
-    write_to_file(s, '_s/48')
+    # write_to_file(s, '_s/48')
 
-    # 2. transmitted code: t (groundtruth)
-    os.system(
-        './s2t -sfile _s/48 -k 48 -n 48 -Gfile codes/96.3.963/G -smn 1 -tfile _t/96 ')
-    t = read_from_file('_t/96', int)
+    # # 2. transmitted code: t (groundtruth)
+    # os.system(
+    #     './s2t -sfile _s/48 -k 48 -n 48 -Gfile codes/96.3.963/G -smn 1 -tfile _t/96 ')
+    # t = read_from_file('_t/96', int)
+    t = s2t(s, 48, 48, './codes/96.3.963/G', True)
 
-    # 3. received code: y
-    os.system(
-        f'./t2y -tfile _t/96 -yfile _y/96 -gcx {gcx} -seed {np.random.randint(0, 2**31)} -n 96 -sigma {sigma} ')
-    y = read_from_file('_y/96', float)
+    y = y = t2y(t, snr_db, sigma_b, 0.05)
 
+    write_to_file(y, '_y/96')
     error = error_prime = error_b = 0
 
     if not train:
@@ -108,20 +109,9 @@ def gen_value():
     sigma_b = [0, 1, 2, 3, 4, 5]
     snr_db = [0, 1, 2, 3, 4]
 
-    snr = [get_snr(x) for x in snr_db]
-    sigma_c = [1 / x for x in snr]
-
     l = []
 
     np.random.seed(args.seed)
-
-    for i, x in enumerate(sigma_b):
-        for j, y in enumerate(sigma_c):
-            sigma_a = x / y
-            print(
-                f'sigma_b = {x}, snr_db = {snr_db[j]}, snr = {snr[j]}, sigma_a = {sigma_a}')
-            l.append((x, snr_db[j], snr[j], sigma_a))
-
     node_feature = []
     hop_feature = []
     y_list = []
@@ -132,22 +122,22 @@ def gen_value():
         error_prime = [[[] for j in range(6)] for i in range(5)]
         error_b = [[[] for j in range(6)] for i in range(5)]
 
-    for i in tqdm(range(5)):
-        for _ in tqdm(range(args.num)):
-            j = random.randint(0, 5)
-            idx = j * 5 + i
-            x, m, y, err, err_prime, err_b = work(
-                l[idx][2], l[idx][3], args.train)
+    for j, csigma_b in enumerate(sigma_b):
+        for i, csnr_db in enumerate(snr_db):
+            print(
+                f'sigma_b = {csigma_b}, snr_db = {csnr_db}')
 
-            node_feature.append([[elem, l[idx][2]] for elem in x])
-            hop_feature.append(m)
-            y_list.append(y)
-            sigma_b_list.append(j)
-
-            if not args.train:
-                error[i][j].append(err)
-                error_prime[i][j].append(err_prime)
-                error_b[i][j].append(err_b)
+            for num in range(args.num):
+                x, m, y, err, err_prime, err_b = work(
+                    csnr_db, csigma_b, args.train)
+                node_feature.append([[elem, csnr_db] for elem in x])
+                hop_feature.append(m)
+                y_list.append(y)
+                sigma_b_list.append(j)
+                if not args.train:
+                    error[i][j].append(err)
+                    error_prime[i][j].append(err_prime)
+                    error_b[i][j].append(err_b)
 
     node_feature = torch.FloatTensor(
         np.stack(node_feature)).permute(0, 2, 1).unsqueeze(-1)
