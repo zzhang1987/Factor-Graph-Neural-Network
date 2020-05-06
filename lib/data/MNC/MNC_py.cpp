@@ -106,7 +106,7 @@ xt::pyarray<T> s2t(const xt::pyarray<T>& source,
 // template <typename T>
 template <typename T>
 xt::pyarray<T> t2y(xt::pyarray<long int> t, T snr_db, T sigma_b, T rho){
-    T gcx = std::pow(10, snr_db / 10.0);
+    T gcx = std::pow(10, snr_db / 20.0);
     size_t size = t.shape()[0];
     xt::xarray<T> res = 2 * gcx * (xt::pyarray<T>(t) - 0.5) + xt::random::randn<T>({size});
 

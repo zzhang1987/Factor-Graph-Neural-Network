@@ -247,6 +247,7 @@ def test(args, model, emodel_high):
             for b in range(6):
                 indice = (sigma_b == b) & (abs(cur_SNR-elem) < 1e-3)
                 # print(indice)
+                print(b)
                 acc_cnt[i][b] += torch.sum(pred_int[indice, :48]
                                            == label[indice, :48])
                 acc_tot[i][b] += torch.sum(indice) * 48

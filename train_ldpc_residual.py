@@ -14,6 +14,7 @@ from lib.mpnn import factor_mpnn
 import scipy.stats as st
 import utils
 from utils.types import str2bool
+import pdb
 
 
 def parse_args():
@@ -90,7 +91,11 @@ def train(args, model, emodel_high, writer, model_dir):
     start_epoch = 0
     gcnt = 0
     if os.path.exists(args.model_path):
-        ckpt = torch.load(args.model_path)
+        if not torch.cuda.is_available():
+            ckpt = torch.load(
+                args.model_path, map_location=torch.device('cpu'))
+        else:
+            ckpt = torch.load(args.model_path)
         model.load_state_dict(ckpt['model_state_dict'])
         emodel_high.load_state_dict(ckpt['emodel_high_state_dict'])
         optimizer.load_state_dict(ckpt['optimizer_state_dict'])
@@ -195,14 +200,18 @@ def test(args, model, emodel_high):
     test_dataset = lib.data.Codes(args.test_path, train=False)
 
     test_loader = torch.utils.data.DataLoader(test_dataset,
-                                              batch_size=100,
+                                              batch_size=1,
                                               shuffle=False,
                                               num_workers=8,
                                               worker_init_fn=worker_init_fn)
 
     assert args.model_path, 'please input model path'
 
-    ckpt = torch.load(args.model_path)
+    if args.use_cuda:
+        ckpt = torch.load(args.model_path)
+    else:
+        ckpt = torch.load(args.model_path, map_location=torch.device('cpu'))
+
     model.load_state_dict(ckpt['model_state_dict'])
     emodel_high.load_state_dict(ckpt['emodel_high_state_dict'])
 
@@ -212,9 +221,9 @@ def test(args, model, emodel_high):
     tot = 0
     model.eval()
     emodel_high.eval()
-
+    # pdb.set_trace()
     SNR = [0, 1, 2, 3, 4]
-    for _, (nfeature, hops, nn_idx, etype, efeature, label, sigma_b) in tqdm(enumerate(test_loader)):
+    for _, (nfeature, hops, nn_idx, etype, efeature, label, sigma_b) in enumerate(test_loader):
         if args.use_cuda:
             # print(nfeature)
             # print(hops)
@@ -241,22 +250,23 @@ def test(args, model, emodel_high):
                 ]])
 
             pred = pred.squeeze().contiguous()
-        pred_int = (pred > 0).long()
+        pred_int = (pred >= 0).long().squeeze()
+        label = label.squeeze()
 
-        for i, elem in enumerate(SNR):
-            for b in range(6):
-                indice = (sigma_b == b) & (abs(cur_SNR-elem) < 1e-3)
-                # print(indice)
-                acc_cnt[i][b] += torch.sum(pred_int[indice, :48]
-                                           == label[indice, :48])
-                acc_tot[i][b] += torch.sum(indice) * 48
+        b = sigma_b.squeeze().item()
+        i = round(cur_SNR.squeeze().item())
+
+        # print(i, b)
+        acc_cnt[i][b] += torch.sum(pred_int[:48] == label[:48]).item()
+        acc_tot[i][b] += 48
+        print(
+            'snr = {} sigma_b = {}  Correct = {}/48'.format(i, b, torch.sum(pred_int[:48] == label[:48]).item()))
 
         # parameters = list(model.parameters()) + list(emodel_high.parameters())
         # torch.nn.utils.clip_grad_norm(parameters, 1.0)
 
-        all_correct = torch.sum(pred_int[:, :48] == label[:, :48])
+        all_correct = torch.sum(pred_int[:48] == label[:48])
 
-        indice = sigma_b
         acc_seq.append(all_correct.item())
         tot += np.prod(label.shape) // 2
 
