@@ -133,6 +133,7 @@ def train(args, model, emodel_high, writer, model_dir):
                 nfeature = nfeature.unsqueeze(-1)
 
             etype_high = emodel_high(efeature) * etype
+            # print(etype_high[0, :, 0, :].permute(1, 0))
             bsize = nfeature.shape[0]
 
             # print('efeature_high', efeature_high.shape)
