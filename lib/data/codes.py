@@ -10,10 +10,6 @@ from .MNC import init_seed, s2t, t2y
 import pdb
 
 
-def get_snr(snr_db):
-    return 10**(snr_db/10)
-
-
 class LDPCGenerator:
     def __init__(self):
         self.code_len = 48
@@ -126,7 +122,7 @@ class Codes(Dataset):
         efeature = np.transpose(efeature, [2, 0, 1]).astype(np.float32)
         node_feature = self.node_feature[idx].squeeze()
         # print(node_feature[1, :])
-        node_feature[1, :] = 10 * torch.log10(node_feature[1, :])
+        # node_feature[1, :] = 10 * torch.log10(node_feature[1, :])
         # print(node_feature)
         # pdb.set_trace()
         return node_feature.unsqueeze(-1), hop_feature, nn_idx, etype, efeature, self.y[idx], self.sigma_b[idx]
