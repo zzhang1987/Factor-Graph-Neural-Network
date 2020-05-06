@@ -42,9 +42,9 @@ class LDPCGenerator:
                     nn_idx[i, j] = 96 + idx
                     efeature[0, i, j] = 1
 
-                for k in range(j, n_edges):
+                for k in range(j + 1, n_edges):
                     nn_idx[i, k] = i
-
+            # print(nn_idx[:96, :])
             factors = []
 
             for i in range(48):
@@ -76,8 +76,8 @@ class LDPCGenerator:
         hop = self.get_highorder_feature(y)
 
         nn_idx_node = self.nn_idx[:96, :3]
-
-        feature_h = np.take(hop, nn_idx_node.reshape(-1),
+        # print(nn_idx_node)
+        feature_h = np.take(hop, nn_idx_node.reshape(-1) - 96,
                             axis=0).reshape(96, 3, 6).astype(np.float32)
 
         efeature_node = np.concatenate(
@@ -121,7 +121,7 @@ class Codes(Dataset):
             node_feature)
         # hop = self.generator.get_highorder_feature(node_feature)
         hop_feature = np.expand_dims(hop.T, -1)
-        etype = np.transpose(etype, [2, 0, 1]).astype(np.float32)
+        etype = etype.astype(np.float32)
         efeature = np.transpose(efeature, [2, 0, 1]).astype(np.float32)
         node_feature = self.node_feature[idx].squeeze()
         # print(node_feature[1, :])
@@ -152,6 +152,6 @@ class ContinusCodes(Dataset):
         node_feature = np.asarray([[elem, snr_db]
                                    for elem in trans_noizy], dtype=np.float32).T
         hop_feature = np.expand_dims(hop.T, -1)
-        etype = np.transpose(etype, [2, 0, 1]).astype(np.float32)
+        etype = etype.astype(np.float32)
         efeature = np.transpose(efeature, [2, 0, 1]).astype(np.float32)
         return node_feature.astype(np.float32), hop_feature.astype(np.float32), nn_idx, etype, efeature, trans.astype(np.int), sigma_b

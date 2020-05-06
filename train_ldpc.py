@@ -63,7 +63,7 @@ def worker_init_fn(idx):
     seed = ((t & 0xff000000) >> 24) + ((t & 0x00ff0000) >> 8) + \
         ((t & 0x0000ff00) << 8) + ((t & 0x000000ff) << 24)
     np.random.seed(seed)
-    lib.data.init_seed(seed)
+    lib.data.init_seed(int(seed % 65537))
 
 
 def train(args, model, emodel_high, writer, model_dir):
@@ -245,7 +245,7 @@ def test(args, model, emodel_high):
         for i, elem in enumerate(SNR):
             for b in range(6):
                 indice = (sigma_b == b) & (abs(cur_SNR-elem) < 1e-3)
-                print(indice)
+                # print(indice)
                 acc_cnt[i][b] += torch.sum(pred_int[indice, :48]
                                            == label[indice, :48])
                 acc_tot[i][b] += torch.sum(indice) * 48
@@ -276,12 +276,12 @@ def main():
     if args.model_name == 'mp_nn_factor':
         model = factor_mpnn(nfeature_dim, [hop_order],
                             [64, 64, 64, 128,  128, 64, 64, 1],
-                            [8],
+                            [2],
                             skip_link={3: 2, 4: 1, 5: 0})
 
-        emodel_high = torch.nn.Sequential(torch.nn.Conv2d(2, 64, 1),
+        emodel_high = torch.nn.Sequential(torch.nn.Conv2d(7, 64, 1),
                                           torch.nn.ReLU(inplace=True),
-                                          torch.nn.Conv2d(64, 8, 1))
+                                          torch.nn.Conv2d(64, 2, 1))
 
     def get_model_description():
         return str(model) + str(emodel_high)
