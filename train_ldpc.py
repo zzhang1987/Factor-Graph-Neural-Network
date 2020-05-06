@@ -50,44 +50,23 @@ def parse_args():
     parser.add_argument('--train', action='store_true', default=False)
 
     parser.add_argument('--batch_size', type=int, default=32)
+    args = parser.parse_args()
 
-    return parser.parse_args()
+    if not torch.cuda.is_available():
+        args.use_cuda = False
 
-
-def generate_high_factor_table(filename):
-    n_nodes = 96+48
-    n_edges = 6+3
-    nn_idx = np.zeros((n_nodes, n_edges)).astype(np.int64)
-    efeature = np.zeros((2, n_nodes, n_edges)).astype(np.float32)
-
-    with open(filename) as f:
-        for i in range(4):
-            f.readline()
-        for i in range(96):
-            indice = map(lambda x: int(x)-1, f.readline().strip().split())
-            for j, idx in enumerate(indice):
-                nn_idx[i, j] = 96 + idx
-                efeature[0, i, j] = 1
-
-        for i in range(48):
-            indice = map(lambda x: int(x)-1, f.readline().strip().split())
-            for j, idx in enumerate(indice):
-                nn_idx[96+i, 3+j] = idx
-                efeature[1, 96+i, 3+j] = 1
-
-    nn_idx = torch.from_numpy(np.expand_dims(nn_idx, 0))
-    efeature = torch.from_numpy(np.expand_dims(efeature, 0))
-    return nn_idx, efeature
+    return args
 
 
 def worker_init_fn(idx):
     t = int(time.time() * 1000.0) + idx
-    np.random.seed(((t & 0xff000000) >> 24) + ((t & 0x00ff0000) >> 8) +
-                   ((t & 0x0000ff00) << 8) + ((t & 0x000000ff) << 24))
+    seed = ((t & 0xff000000) >> 24) + ((t & 0x00ff0000) >> 8) + \
+        ((t & 0x0000ff00) << 8) + ((t & 0x000000ff) << 24)
+    np.random.seed(seed)
+    lib.data.init_seed(seed)
 
 
-def train(args, model, emodel_high, nn_idx_high, efeature_high, writer, model_dir):
-    #train_dataset = lib.data.Codes(args.train_path)
+def train(args, model, emodel_high, writer, model_dir):
 
     train_dataset = lib.data.ContinusCodes()
 
@@ -141,19 +120,19 @@ def train(args, model, emodel_high, nn_idx_high, efeature_high, writer, model_di
 
         loss_seq = []
         acc_seq = []
-        for bcnt, (nfeature, hops, label, _) in tqdm(enumerate(train_loader)):
+        for bcnt, (nfeature, hops, nn_idx, etype, efeature, label, _) in tqdm(enumerate(train_loader)):
             optimizer.zero_grad()
             if args.use_cuda:
                 # print(nfeature)
                 # print(hops)
                 # print(label)
-                nfeature, hops, label \
-                    = nfeature.cuda(), hops.cuda(), label.cuda()
+                nfeature, hops, nn_idx, etype, efeature, label \
+                    = nfeature.cuda(), hops.cuda(), nn_idx.cuda(), etype.cuda(), efeature.cuda(), label.cuda()
             hops = hops.float()
             if len(nfeature.shape) == 3:
                 nfeature = nfeature.unsqueeze(-1)
 
-            etype_high = emodel_high(efeature_high)
+            etype_high = emodel_high(efeature) * etype
             bsize = nfeature.shape[0]
 
             # print('efeature_high', efeature_high.shape)
@@ -167,8 +146,8 @@ def train(args, model, emodel_high, nn_idx_high, efeature_high, writer, model_di
 
             pred, _ = model(nfeature, [hops],
                             [[
-                                nn_idx_high.repeat(bsize, 1, 1),
-                                etype_high.repeat(bsize, 1, 1, 1)
+                                nn_idx,
+                                etype_high
                             ]])
             # print(pred.shape)
             # print(label.shape)
@@ -209,7 +188,7 @@ def train(args, model, emodel_high, nn_idx_high, efeature_high, writer, model_di
         logging.info('training done!')
 
 
-def test(args, model, emodel_high, nn_idx_high, efeature_high):
+def test(args, model, emodel_high):
     test_dataset = lib.data.Codes(args.test_path, train=False)
 
     test_loader = torch.utils.data.DataLoader(test_dataset,
@@ -232,14 +211,14 @@ def test(args, model, emodel_high, nn_idx_high, efeature_high):
     emodel_high.eval()
 
     SNR = [0, 1, 2, 3, 4]
-    for _, (nfeature, hops, label, sigma_b) in tqdm(enumerate(test_loader)):
+    for _, (nfeature, hops, nn_idx, etype, efeature, label, sigma_b) in tqdm(enumerate(test_loader)):
         if args.use_cuda:
             # print(nfeature)
             # print(hops)
             # print(label)
             # print(sigma_b)
-            nfeature, hops, label, sigma_b \
-                = nfeature.cuda(), hops.cuda(), label.cuda(), sigma_b.cuda()
+            nfeature, hops, nn_idx, etype, efeature, label, sigma_b \
+                = nfeature.cuda(), hops.cuda(), nn_idx.cuda(), etype.cuda(), efeature.cuda(), label.cuda(), sigma_b.cuda()
         cur_SNR = nfeature[:, 1, 0, 0]
         # print(cur_SNR)
         hops = hops.float()
@@ -248,14 +227,14 @@ def test(args, model, emodel_high, nn_idx_high, efeature_high):
         if len(nfeature.shape) == 3:
             nfeature = nfeature.unsqueeze(-1)
 
-        etype_high = emodel_high(efeature_high)
+        etype_high = emodel_high(efeature) * etype
         bsize = nfeature.shape[0]
         with torch.no_grad():
             pred, _ = model(
                 nfeature, [hops],
                 [[
-                    nn_idx_high.repeat(bsize, 1, 1),
-                    etype_high.repeat(bsize, 1, 1, 1)
+                    nn_idx,
+                    etype_high
                 ]])
 
             pred = pred.squeeze().contiguous()
@@ -264,6 +243,7 @@ def test(args, model, emodel_high, nn_idx_high, efeature_high):
         for i, elem in enumerate(SNR):
             for b in range(6):
                 indice = (sigma_b == b) & (abs(cur_SNR-elem) < 1e-3)
+                print(indice)
                 acc_cnt[i][b] += torch.sum(pred_int[indice, :48]
                                            == label[indice, :48])
                 acc_tot[i][b] += torch.sum(indice) * 48
@@ -306,11 +286,7 @@ def main():
 
     logging.info('model {} created'.format(get_model_description()))
 
-    nn_idx_high, efeature_high = generate_high_factor_table(args.filename)
-
     if args.use_cuda:
-        nn_idx_high = nn_idx_high.cuda()
-        efeature_high = efeature_high.cuda()
 
         model.cuda()
         emodel_high.cuda()
@@ -326,11 +302,10 @@ def main():
         model_dir = f'./model_ldpc/{subdir}'
         if not os.path.exists(model_dir):
             os.makedirs(model_dir)
-        train(args, model, emodel_high, nn_idx_high,
-              efeature_high, writer, model_dir)
+        train(args, model, emodel_high, writer, model_dir)
 
     else:
-        test(args, model, emodel_high, nn_idx_high, efeature_high)
+        test(args, model, emodel_high)
 
 
 if __name__ == '__main__':
