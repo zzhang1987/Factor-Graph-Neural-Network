@@ -163,8 +163,6 @@ def train(args, model,  writer, model_dir):
         acc_seq = []
         for bcnt, (node_feature, hop_feature, nn_idx_f2v, nn_idx_v2f, efeature_f2v, efeature_v2f, label, _) in tqdm(enumerate(train_loader)):
             optimizer.zero_grad()
-            # print('f2v shape', nn_idx_f2v.shape)
-
             if args.use_cuda:
                 node_feature, hop_feature, nn_idx_f2v, nn_idx_v2f, efeature_f2v, efeature_v2f, label = to_cuda(
                     node_feature, hop_feature, nn_idx_f2v, nn_idx_v2f, efeature_f2v, efeature_v2f, label)

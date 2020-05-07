@@ -154,6 +154,15 @@ class FactorNN(torch.nn.Module):
                 nnode_feature = nfeature
                 nhop_feature = nffeature
 
+            if idx in self.skip_link.keys():
+                tidx = self.skip_link[idx]
+                onfeatures, offeature = all_inter_features[tidx]
+                nnode_feature = nfeature + onfeatures
+                nhop_feature = [m1 + m2 for m1,
+                                m2 in zip(offeature, nhop_feature)]
+
+            all_inter_features.append([nnode_feature, nhop_feature])
+
         final_res = self.final_classifier(nnode_feature)
         if self.final_filter is not None:
             final_res = self.final_filter(final_res, node_feature)
