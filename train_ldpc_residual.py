@@ -137,7 +137,7 @@ def train(args, model, emodel_high, writer, model_dir):
             if len(nfeature.shape) == 3:
                 nfeature = nfeature.unsqueeze(-1)
 
-            etype_high = emodel_high(efeature) * etype
+            etype_high = emodel_high(efeature) * etype.repeat(1, 4, 1, 1)
             # print(etype_high[0, :, 0, :].permute(1, 0))
             bsize = nfeature.shape[0]
 
@@ -239,7 +239,7 @@ def test(args, model, emodel_high):
         if len(nfeature.shape) == 3:
             nfeature = nfeature.unsqueeze(-1)
 
-        etype_high = emodel_high(efeature) * etype
+        etype_high = emodel_high(efeature) * etype.repeat(1, 2, 1, 1)
         bsize = nfeature.shape[0]
         with torch.no_grad():
             pred, _ = model(
@@ -287,13 +287,13 @@ def main():
     if args.model_name == 'mp_nn_factor':
         model = factor_mpnn(nfeature_dim, [hop_order],
                             [64, 64, 64, 128,  128, 64, 64, 1],
-                            [2],
+                            [4],
                             skip_link={3: 2, 4: 1, 5: 0},
                             final_filter=residual_link)
 
         emodel_high = torch.nn.Sequential(torch.nn.Conv2d(7, 64, 1),
                                           torch.nn.ReLU(inplace=True),
-                                          torch.nn.Conv2d(64, 2, 1))
+                                          torch.nn.Conv2d(64, 8, 1))
 
     def get_model_description():
         return str(model) + str(emodel_high)
