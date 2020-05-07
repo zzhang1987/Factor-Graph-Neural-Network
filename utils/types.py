@@ -8,3 +8,7 @@ def str2bool(v):
         return False
     else:
         raise argparse.ArgumentTypeError('Boolean value expected.')
+
+
+def to_cuda(*vlist):
+    return [v.cuda() for v in vlist]

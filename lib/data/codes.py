@@ -143,6 +143,23 @@ class Codes(Dataset):
         return node_feature.unsqueeze(-1), hop_feature, nn_idx, etype, efeature, self.y[idx], self.sigma_b[idx]
 
 
+class Codes_SP(Codes):
+    def __init__(self, filename, train=True):
+        super(Codes_SP, self).__init__(filename, train)
+
+    def __getitem__(self, idx):
+        node_feature = self.node_feature[idx].numpy().squeeze().T[:, 0]
+        hop, nn_idx_f2v, nn_idx_v2f, efeature_f2v, efeature_v2f = self.generator.get_mpnn_sp_structure(
+            node_feature)
+        node_feature = self.node_feature[idx].squeeze()
+
+        hop_feature = np.expand_dims(hop.T, -1).astype(np.float32)
+        efeature_v2f = np.transpose(efeature_v2f, [2, 0, 1]).astype(np.float32)
+        efeature_f2v = np.transpose(efeature_f2v, [2, 0, 1]).astype(np.float32)
+
+        return node_feature, hop_feature, nn_idx_f2v.astype(np.int), nn_idx_v2f.astype(np.int), efeature_v2f, efeature_f2v, self.y[idx], self.sigma_b[idx]
+
+
 class ContinusCodes(Dataset):
     def __init__(self):
         self.len = 10000

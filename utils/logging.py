@@ -17,6 +17,5 @@ def init_logger(log_path, log_file, print_log=True, level=logging.INFO):
 
     logging.basicConfig(
         level=level,
-        format=
-        "%(asctime)s [%(process)d] [%(threadName)-12.12s] [%(levelname)-5.5s]  %(message)s",
+        format="%(asctime)s [%(process)d] [%(threadName)-12.12s] [%(levelname)-5.5s]  %(message)s",
         handlers=handlers)
