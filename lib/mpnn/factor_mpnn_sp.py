@@ -31,7 +31,8 @@ class FactorNN(torch.nn.Module):
                  gnn_immediate_dim=64,
                  max_mpnn_dim=64,
                  final_filter=None,
-                 skip_link={}):
+                 skip_link={},
+                 aggregator='max'):
         super(FactorNN, self).__init__()
 
         self.node_feature_dim = node_feature_dim
@@ -74,20 +75,20 @@ class FactorNN(torch.nn.Module):
 
                 if nin == nout:
                     cf2v_module.append(mp_conv_residual(
-                        nin, gnn_immediate_dim, netype, extension=mp_conv_type.NO_EXTENSION, with_residual=False))
+                        nin, gnn_immediate_dim, netype, extension=mp_conv_type.NO_EXTENSION, with_residual=False, aggregator=aggregator))
                     cv2f_module.append(mp_conv_residual(
-                        nin, gnn_immediate_dim, netype, extension=mp_conv_type.NO_EXTENSION, with_residual=False))
+                        nin, gnn_immediate_dim, netype, extension=mp_conv_type.NO_EXTENSION, with_residual=False, aggregator=aggregator))
 
                 elif nin <= max_mpnn_dim and nout <= max_mpnn_dim:
                     cf2v_module.append(mp_conv_v2(
-                        nin, nout, netype, extension=mp_conv_type.NO_EXTENSION))
+                        nin, nout, netype, extension=mp_conv_type.NO_EXTENSION, aggregtor=aggregator))
                     cv2f_module.append(mp_conv_v2(
-                        nin, nout, netype, extension=mp_conv_type.NO_EXTENSION))
+                        nin, nout, netype, extension=mp_conv_type.NO_EXTENSION, aggregtor=aggregator))
                 else:
                     cf2v_module.append(mp_conv_residual(
-                        nin, gnn_immediate_dim, netype, extension=mp_conv_type.NO_EXTENSION, with_residual=False, nout=nout))
+                        nin, gnn_immediate_dim, netype, extension=mp_conv_type.NO_EXTENSION, with_residual=False, nout=nout, aggregator=aggregator))
                     cv2f_module.append(mp_conv_residual(
-                        nin, gnn_immediate_dim, netype, extension=mp_conv_type.NO_EXTENSION, with_residual=False, nout=nout))
+                        nin, gnn_immediate_dim, netype, extension=mp_conv_type.NO_EXTENSION, with_residual=False, nout=nout, aggregator=aggregator))
 
                 self.add_module('f2v_{}_{}'.format(idx, jidx), cf2v_module[-1])
                 self.add_module('v2f_{}_{}'.format(idx, jidx), cv2f_module[-1])

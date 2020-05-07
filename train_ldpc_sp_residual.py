@@ -24,8 +24,8 @@ class LDPCModel(torch.nn.Module):
                              [hop_order],
                              [64, 64, 64, 128, 128, 64, 64],
                              [nedge_type],
-                             2,
-                             skip_link={3: 2, 4: 1, 5: 0})
+                             2)  # ,
+        # skip_link={3: 2, 4: 1, 5: 0})
 
         self.emodel_f2v = torch.nn.Sequential(torch.nn.Conv2d(7, 64, 1),
                                               torch.nn.ReLU(inplace=True),
@@ -89,6 +89,7 @@ def parse_args():
     parser.add_argument('--train', action='store_true', default=False)
 
     parser.add_argument('--batch_size', type=int, default=32)
+    parser.add_argument('--aggregator', type=str, default='max')
     args = parser.parse_args()
 
     if not torch.cuda.is_available():
@@ -174,7 +175,7 @@ def train(args, model,  writer, model_dir):
                          nn_idx_v2f, efeature_f2v, efeature_v2f)
 
             label = label[:, :48].contiguous()
-            print(pred.shape)
+            # print(pred.shape)
             # print(label.shape)
             loss = torch.nn.functional.binary_cross_entropy_with_logits(
                 pred.view(-1), label.view(-1).float())
