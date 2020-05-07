@@ -137,8 +137,11 @@ def train(args, model, emodel_high, writer, model_dir):
             if len(nfeature.shape) == 3:
                 nfeature = nfeature.unsqueeze(-1)
 
+            # print(etype.shape)
+            # print(efeature.shape)
             etype_high = emodel_high(efeature) * etype.repeat(1, 4, 1, 1)
             # print(etype_high[0, :, 0, :].permute(1, 0))
+            # print(etype_high.shape)
             bsize = nfeature.shape[0]
 
             # print('efeature_high', efeature_high.shape)
@@ -287,7 +290,7 @@ def main():
     if args.model_name == 'mp_nn_factor':
         model = factor_mpnn(nfeature_dim, [hop_order],
                             [64, 64, 64, 128,  128, 64, 64, 1],
-                            [4],
+                            [8],
                             skip_link={3: 2, 4: 1, 5: 0},
                             final_filter=residual_link)
 
