@@ -11,7 +11,8 @@ class mp_conv_residual(base_mp_nn):
                  netype,
                  extension=mp_conv_type.ORIG_WITH_DIFF,
                  with_residual=True,
-                 with_hop=False):
+                 with_hop=False,
+                 aggregator='max', nout=None):
         """
         Residual block for graph conv network.
         :param nin: number of input units
@@ -24,10 +25,13 @@ class mp_conv_residual(base_mp_nn):
         self.conv1 = torch.nn.Sequential(torch.nn.Conv2d(nin, nmed, 1),
                                          SyncBatchNorm(nmed),
                                          torch.nn.LeakyReLU(inplace=True))
-        self.mp_conv = mp_conv_v2(nmed, nmed, netype, extension=extension)
+        self.mp_conv = mp_conv_v2(
+            nmed, nmed, netype, extension=extension, aggregtor=aggregator)
 
-        self.conv2 = torch.nn.Sequential(torch.nn.Conv2d(nmed, nin, 1),
-                                         SyncBatchNorm(nin),
+        if nout is None:
+            nout = nin
+        self.conv2 = torch.nn.Sequential(torch.nn.Conv2d(nmed, nout, 1),
+                                         SyncBatchNorm(nout),
                                          torch.nn.LeakyReLU(inplace=True))
         self.with_residual = with_residual
         self.with_hop = with_hop
