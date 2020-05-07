@@ -154,7 +154,8 @@ def train(args, model,  writer, model_dir):
 
     print('training started!')
     for epoch in tqdm(range(start_epoch, args.n_epochs)):
-        torch.save(get_model_dict(), get_model_path())
+        if (epoch + 1) % 10 == 0:
+            torch.save(get_model_dict(), get_model_path())
 
         logging.info(f'save train result to {get_model_path()}')
 
