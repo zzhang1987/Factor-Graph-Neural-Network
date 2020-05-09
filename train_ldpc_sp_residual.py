@@ -205,6 +205,7 @@ def train(args, model,  writer, model_dir):
         logging.info(f'save train result to {get_model_path()}')
 
         loss_seq = []
+        sigma_b_loss_seq = []
         acc_seq = []
         for bcnt, (node_feature, hop_feature, nn_idx_f2v, nn_idx_v2f, efeature_f2v, efeature_v2f, label, sigma_b) in tqdm(enumerate(train_loader)):
             optimizer.zero_grad()
@@ -226,8 +227,8 @@ def train(args, model,  writer, model_dir):
             sigma_b_loss = torch.nn.functional.mse_loss(
                 sigma_b_pred.view(-1), sigma_b.float().view(-1))
 
-            loss = loss + 0.1 * sigma_b_loss
-            loss.backward()
+            allloss = loss + 0.1 * sigma_b_loss
+            allloss.backward()
             # torch.nn.utils.clip_grad_norm(parameters, 1.0)
 
             optimizer.step()
@@ -239,14 +240,17 @@ def train(args, model,  writer, model_dir):
             acc = all_correct.item() / np.prod(label.shape)
 
             acc_seq.append(acc)
+            sigma_b_loss_seq.append(sigma_b_loss.item())
 
             if gcnt % 10 == 0:
                 logging.info('epoch = {} bcnt = {} loss = {} acc = {}'.format(
                     epoch, bcnt, np.mean(loss_seq), np.mean(acc_seq)))
                 writer.add_scalar('syn_train/loss', np.mean(loss_seq), gcnt)
+                writer.add_scalar('syn_train/sigma_b_loss', np.mean(sigma_b_loss_seq, gcnt))
                 writer.add_scalar('syn_train/acc', np.mean(acc_seq), gcnt)
                 loss_seq = []
                 acc_seq = []
+                sigma_b_loss_seq = []
 
         scheduler.step()
 
