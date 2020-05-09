@@ -41,8 +41,6 @@ class LDPCModel(torch.nn.Module):
         etype_f2v = self.emodel_f2v(efeature_f2v)
         etype_v2f = self.emodel_v2f(efeature_v2f)
 
-        nhop_feature = nhop_feature.reshape(bsize, 96, 1, 1)
-
         # print(nn_idx_f2v[0, :, :].shape)
         # print(nn_idx_v2f[0, :, :].shape)
         res = self.main(node_feature,
