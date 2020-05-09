@@ -50,7 +50,7 @@ class LDPCModel(torch.nn.Module):
         self.hetype_v2f = torch.nn.Parameter(
             torch.from_numpy(hetype_v2f), requires_grad=False)
         self.hetype_f2v = torch.nn.Parameter(
-            torch.from_numpy(hnn_idx_f2v), requires_grad=False)
+            torch.from_numpy(hetype_f2v), requires_grad=False)
 
         self.with_residual = with_residual
 

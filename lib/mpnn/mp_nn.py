@@ -89,7 +89,8 @@ class mp_conv_v2(base_mp_nn):
 
     def to_edge_feature(self, node_feature, nn_idx):
         batch_size = nn_idx.shape[0]
-        node_feature = node_feature.squeeze()  # shape n x b x c
+        if len(node_feature.shape) > 3:
+            node_feature = node_feature.squeeze()  # shape n x b x c
         if batch_size == 1:
             node_feature = node_feature.unsqueeze(0)
         # print(node_feature.shape)

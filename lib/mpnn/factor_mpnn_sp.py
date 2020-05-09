@@ -121,7 +121,7 @@ class FactorNN(torch.nn.Module):
                 etype_f2v: list,
                 etype_v2f: list):
 
-        pdb.set_trace()
+        # pdb.set_trace()
 
         nnode_feature = self.node_mapping_module(node_feature)
         nhop_feature = [m(f) for f, m in zip(
@@ -139,11 +139,8 @@ class FactorNN(torch.nn.Module):
                 nv = self.mpnn_forward(
                     self.f2v_modules[idx][jidx], nhop_feature[jidx], nn_idx_f2v[jidx], etype_f2v[jidx])
                 # print('nv shape', nv.shape)
-
                 nfeature = nfeature + nv
 
-                self.mpnn_forward(
-                    self.v2f_modules[idx][jidx], nnode_feature, nn_idx_v2f[jidx], etype_v2f[jidx])
                 nf = self.v2f_modules[idx][jidx](
                     nnode_feature, nn_idx_v2f[jidx], etype_v2f[jidx])
                 nffeature[jidx] = nffeature[jidx] + nf
