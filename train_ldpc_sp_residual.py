@@ -246,7 +246,8 @@ def train(args, model,  writer, model_dir):
                 logging.info('epoch = {} bcnt = {} loss = {} acc = {}'.format(
                     epoch, bcnt, np.mean(loss_seq), np.mean(acc_seq)))
                 writer.add_scalar('syn_train/loss', np.mean(loss_seq), gcnt)
-                writer.add_scalar('syn_train/sigma_b_loss', np.mean(sigma_b_loss_seq, gcnt))
+                writer.add_scalar('syn_train/sigma_b_loss',
+                                  np.mean(sigma_b_loss_seq), gcnt)
                 writer.add_scalar('syn_train/acc', np.mean(acc_seq), gcnt)
                 loss_seq = []
                 acc_seq = []
