@@ -157,7 +157,7 @@ class Codes_SP(Codes):
         efeature_v2f = np.transpose(efeature_v2f, [2, 0, 1]).astype(np.float32)
         efeature_f2v = np.transpose(efeature_f2v, [2, 0, 1]).astype(np.float32)
 
-        return node_feature, hop_feature, nn_idx_f2v.astype(np.int), nn_idx_v2f.astype(np.int), efeature_v2f, efeature_f2v, self.y[idx], self.sigma_b[idx]
+        return node_feature, hop_feature, nn_idx_f2v.astype(np.int), nn_idx_v2f.astype(np.int), efeature_f2v, efeature_v2f, self.y[idx], self.sigma_b[idx]
 
 
 class ContinusCodes(Dataset):
@@ -210,4 +210,4 @@ class ContinousCodesSP(Dataset):
         efeature_v2f = np.transpose(efeature_v2f, [2, 0, 1]).astype(np.float32)
         efeature_f2v = np.transpose(efeature_f2v, [2, 0, 1]).astype(np.float32)
 
-        return node_feature, hop_feature, nn_idx_f2v.astype(np.int), nn_idx_v2f.astype(np.int), efeature_v2f, efeature_f2v, trans.astype(np.int), sigma_b
+        return node_feature, hop_feature, nn_idx_f2v.astype(np.int), nn_idx_v2f.astype(np.int), efeature_f2v, efeature_v2f, trans.astype(np.int), sigma_b
