@@ -303,8 +303,8 @@ def test(args, model):
         cur_SNR = node_feature[:, 1, 0, 0]
 
         with torch.no_grad():
-            pred = model(node_feature, hop_feature, nn_idx_f2v,
-                         nn_idx_v2f, efeature_f2v, efeature_v2f)
+            pred, _ = model(node_feature, hop_feature, nn_idx_f2v,
+                            nn_idx_v2f, efeature_f2v, efeature_v2f)
 
             pred = pred.squeeze().contiguous()
         pred_int = (pred >= 0).long().squeeze()
