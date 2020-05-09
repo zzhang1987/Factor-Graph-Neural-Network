@@ -60,7 +60,8 @@ class LDPCModel(torch.nn.Module):
                                                   torch.nn.ReLU(),
                                                   torch.nn.Linear(128, 128),
                                                   torch.nn.ReLU(),
-                                                  torch.nn.Linear(128, 1))
+                                                  torch.nn.Linear(128, 1),
+                                                  torch.nn.ReLU())
 
     def forward(self, node_feature, hop_feature, nn_idx_f2v, nn_idx_v2f, efeature_f2v, efeature_v2f):
         etype_f2v = self.emodel_f2v(efeature_f2v)
@@ -225,7 +226,7 @@ def train(args, model,  writer, model_dir):
             loss = torch.nn.functional.binary_cross_entropy_with_logits(
                 pred.view(-1), label.view(-1).float())
             sigma_b_loss = torch.nn.functional.mse_loss(
-                sigma_b_pred.view(-1), sigma_b.float().view(-1))
+                sigma_b_pred.view(-1), (10 * torch.log10(sigma_b/20)).float().view(-1))
 
             allloss = loss + 0.1 * sigma_b_loss
             allloss.backward()
