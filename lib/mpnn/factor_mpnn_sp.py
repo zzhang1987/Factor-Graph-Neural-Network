@@ -148,8 +148,6 @@ class FactorNN(torch.nn.Module):
                     nnode_feature, nn_idx_v2f[jidx], etype_v2f[jidx])
                 nffeature[jidx] = nffeature[jidx] + nf
 
-            all_inter_features.append([nfeature, nffeature])
-
             if nin == nout:
                 nnode_feature = nnode_feature + nfeature
                 nhop_feature = [m1 + m2 for m1,

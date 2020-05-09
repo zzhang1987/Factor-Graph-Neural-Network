@@ -24,8 +24,9 @@ class LDPCModel(torch.nn.Module):
                              [hop_order, 96],
                              [64, 64, 64, 128, 128, 64, 64],
                              [nedge_type, 1],
-                             2)  # ,
-        # skip_link={3: 2, 4: 1, 5: 0})
+                             2,
+                             skip_link={3: 2, 4: 1, 5: 0},
+                             ret_high=True)
 
         self.emodel_f2v = torch.nn.Sequential(torch.nn.Conv2d(7, 64, 1),
                                               torch.nn.ReLU(inplace=True),
@@ -54,6 +55,13 @@ class LDPCModel(torch.nn.Module):
 
         self.with_residual = with_residual
 
+        self.nhop_regressor = torch.nn.Sequential(torch.nn.Linear(64, 128),
+                                                  torch.nn.BatchNorm1d(128),
+                                                  torch.nn.ReLU(),
+                                                  torch.nn.Linear(128, 128),
+                                                  torch.nn.ReLU(),
+                                                  torch.nn.Linear(128, 1))
+
     def forward(self, node_feature, hop_feature, nn_idx_f2v, nn_idx_v2f, efeature_f2v, efeature_v2f):
         etype_f2v = self.emodel_f2v(efeature_f2v)
         etype_v2f = self.emodel_v2f(efeature_v2f)
@@ -65,12 +73,15 @@ class LDPCModel(torch.nn.Module):
 
         # print(nn_idx_f2v[0, :, :].shape)
         # print(nn_idx_v2f[0, :, :].shape)
-        res = self.main(node_feature,
-                        [hop_feature, nhop_feature],
-                        [nn_idx_f2v, self.hnn_idx_f2v.repeat(bsize, 1, 1)],
-                        [nn_idx_v2f, self.hnn_idx_v2f.repeat(bsize, 1, 1)],
-                        [etype_f2v, self.hetype_f2v.repeat(bsize, 1, 1, 1)],
-                        [etype_v2f, self.hetype_v2f.repeat(bsize, 1, 1, 1)])
+        res, nhops = self.main(node_feature,
+                               [hop_feature, nhop_feature],
+                               [nn_idx_f2v, self.hnn_idx_f2v.repeat(
+                                   bsize, 1, 1)],
+                               [nn_idx_v2f, self.hnn_idx_v2f.repeat(
+                                   bsize, 1, 1)],
+                               [etype_f2v, self.hetype_f2v.repeat(
+                                   bsize, 1, 1, 1)],
+                               [etype_v2f, self.hetype_v2f.repeat(bsize, 1, 1, 1)])
 
         if self.with_residual:
             res = res + node_feature[:, :1, :, :]
@@ -79,7 +90,13 @@ class LDPCModel(torch.nn.Module):
         if batch_size == 1:
             res = res.unsqueeze(0)
 
-        return res[:, :48].contiguous()
+        hhop = nhops[1].squeeze()
+        if bsize == 1:
+            hhop = hhop.unsqueeze(0)
+
+        snr_b_pred = self.nhop_regressor(hhop)
+
+        return res[:, :48].contiguous(), snr_b_pred
 
 
 def parse_args():
@@ -189,23 +206,27 @@ def train(args, model,  writer, model_dir):
 
         loss_seq = []
         acc_seq = []
-        for bcnt, (node_feature, hop_feature, nn_idx_f2v, nn_idx_v2f, efeature_f2v, efeature_v2f, label, _) in tqdm(enumerate(train_loader)):
+        for bcnt, (node_feature, hop_feature, nn_idx_f2v, nn_idx_v2f, efeature_f2v, efeature_v2f, label, sigma_b) in tqdm(enumerate(train_loader)):
             optimizer.zero_grad()
             if args.use_cuda:
-                node_feature, hop_feature, nn_idx_f2v, nn_idx_v2f, efeature_f2v, efeature_v2f, label = to_cuda(
-                    node_feature, hop_feature, nn_idx_f2v, nn_idx_v2f, efeature_f2v, efeature_v2f, label)
+                node_feature, hop_feature, nn_idx_f2v, nn_idx_v2f, efeature_f2v, efeature_v2f, label, sigma_b = to_cuda(
+                    node_feature, hop_feature, nn_idx_f2v, nn_idx_v2f, efeature_f2v, efeature_v2f, label, sigma_b.float())
 
             if len(node_feature.shape) == 3:
                 node_feature = node_feature.unsqueeze(-1)
 
-            pred = model(node_feature, hop_feature, nn_idx_f2v,
-                         nn_idx_v2f, efeature_f2v, efeature_v2f)
+            pred, sigma_b_pred = model(node_feature, hop_feature, nn_idx_f2v,
+                                       nn_idx_v2f, efeature_f2v, efeature_v2f)
 
             label = label[:, :48].contiguous()
             # print(pred.shape)
             # print(label.shape)
             loss = torch.nn.functional.binary_cross_entropy_with_logits(
                 pred.view(-1), label.view(-1).float())
+            sigma_b_loss = torch.nn.functional.mse_loss(
+                sigma_b_pred.view(-1), sigma_b.float().view(-1))
+
+            loss = loss + 0.1 * sigma_b_loss
             loss.backward()
             # torch.nn.utils.clip_grad_norm(parameters, 1.0)
 
