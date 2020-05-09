@@ -113,7 +113,7 @@ def parse_args():
                         help="path of the testing dataset")
 
     parser.add_argument('--filename', type=str, default='ldpc_data/96.3.963')
-    parser.add_argument('--train', action='store_true', default=False)
+    parser.add_argument('--train', action='store_true', default=True)
 
     parser.add_argument('--batch_size', type=int, default=32)
     parser.add_argument('--aggregator', type=str, default='max')

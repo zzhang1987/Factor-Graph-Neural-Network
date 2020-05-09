@@ -33,7 +33,8 @@ class FactorNN(torch.nn.Module):
                  max_mpnn_dim=64,
                  final_filter=None,
                  skip_link={},
-                 aggregator='max'):
+                 aggregator='max',
+                 ret_high=False):
         super(FactorNN, self).__init__()
 
         self.node_feature_dim = node_feature_dim
@@ -48,7 +49,7 @@ class FactorNN(torch.nn.Module):
         self.factor_mapping_modules = []
 
         for dim in factor_feature_dim_list:
-            self.factor_mapping_modules.append(iid_mapping(dim, self.map_dim))
+            self.factor_mapping_modules.append(iid_mapping_bn(dim, self.map_dim))
 
         for idx, m in enumerate(self.factor_mapping_modules):
             self.add_module('factor_mapping_modules_{}'.format(idx), m)
@@ -98,7 +99,9 @@ class FactorNN(torch.nn.Module):
             self.f2f_modules.append(cf2f_module)
             self.f2v_modules.append(cf2v_module)
             self.v2f_modules.append(cv2f_module)
-            self.skip_link = skip_link
+
+        self.skip_link = skip_link
+        self.ret_high = ret_high
 
         final_dim = nclass if nclass > 2 else 1
 
@@ -158,7 +161,7 @@ class FactorNN(torch.nn.Module):
             if idx in self.skip_link.keys():
                 tidx = self.skip_link[idx]
                 onfeatures, offeature = all_inter_features[tidx]
-                nnode_feature = nfeature + onfeatures
+                nnode_feature = nnode_feature + onfeatures
                 nhop_feature = [m1 + m2 for m1,
                                 m2 in zip(offeature, nhop_feature)]
 
@@ -169,4 +172,7 @@ class FactorNN(torch.nn.Module):
             final_res = self.final_filter(final_res, node_feature)
         # final_res = self.final_classifier(nhop_feature)
         # print(final_res.shape)
-        return final_res
+        if not self.ret_high:
+            return final_res
+        else:
+            return final_res, nhop_feature

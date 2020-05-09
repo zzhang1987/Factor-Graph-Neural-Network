@@ -24,8 +24,8 @@ class LDPCModel(torch.nn.Module):
                              [hop_order],
                              [64, 64, 64, 128, 128, 64, 64],
                              [nedge_type],
-                             2)  # ,
-        # skip_link={3: 2, 4: 1, 5: 0})
+                             2,
+                             skip_link={3: 2, 4: 1, 5: 0})
 
         self.emodel_f2v = torch.nn.Sequential(torch.nn.Conv2d(7, 64, 1),
                                               torch.nn.ReLU(inplace=True),
