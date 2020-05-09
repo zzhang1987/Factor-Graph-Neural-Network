@@ -226,7 +226,7 @@ def train(args, model,  writer, model_dir):
             loss = torch.nn.functional.binary_cross_entropy_with_logits(
                 pred.view(-1), label.view(-1).float())
             sigma_b_loss = torch.nn.functional.mse_loss(
-                sigma_b_pred.view(-1), (10 * torch.log10(sigma_b/20)).float().view(-1))
+                sigma_b_pred.view(-1), (10 * torch.pow(10.0, sigma_b.float()/20)).view(-1))
 
             allloss = loss + 0.1 * sigma_b_loss
             allloss.backward()
