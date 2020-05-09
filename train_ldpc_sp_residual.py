@@ -21,9 +21,9 @@ class LDPCModel(torch.nn.Module):
         super(LDPCModel, self).__init__()
 
         self.main = FactorNN(nfeature_dim,
-                             [hop_order],
+                             [hop_order, 96],
                              [64, 64, 64, 128, 128, 64, 64],
-                             [nedge_type],
+                             [nedge_type, 1],
                              2)  # ,
         # skip_link={3: 2, 4: 1, 5: 0})
 
@@ -35,15 +35,42 @@ class LDPCModel(torch.nn.Module):
                                               torch.nn.ReLU(inplace=True),
                                               torch.nn.Conv2d(64, nedge_type, 1))
 
+        hetype_v2f = np.ones([1, 1, 1, 96]).astype(np.float32)
+        hetype_f2v = np.ones([1, 1, 96, 1]).astype(np.float32)
+
+        hnn_idx_v2f = np.asarray(
+            list(range(96)), dtype=np.int64).reshape(1, 1, 96)
+        hnn_idx_f2v = np.asarray([0] * 96, dtype=np.int64).reshape(1, 96, 1)
+
+        self.hnn_idx_v2f = torch.nn.Parameter(
+            torch.from_numpy(hnn_idx_v2f).long(), requires_grad=False)
+        self.hnn_idx_f2v = torch.nn.Parameter(
+            torch.from_numpy(hnn_idx_f2v).long(), requires_grad=False)
+
+        self.hetype_v2f = torch.nn.Parameter(
+            torch.from_numpy(hetype_v2f), requires_grad=False)
+        self.hetype_f2v = torch.nn.Parameter(
+            torch.from_numpy(hetype_f2v), requires_grad=False)
+
         self.with_residual = with_residual
 
     def forward(self, node_feature, hop_feature, nn_idx_f2v, nn_idx_v2f, efeature_f2v, efeature_v2f):
         etype_f2v = self.emodel_f2v(efeature_f2v)
         etype_v2f = self.emodel_v2f(efeature_v2f)
+
+        with torch.no_grad():
+            bsize = node_feature.shape[0]
+            nhop_feature = node_feature[:, 0, :, :]
+            nhop_feature = nhop_feature.reshape(bsize, 96, 1, 1)
+
         # print(nn_idx_f2v[0, :, :].shape)
         # print(nn_idx_v2f[0, :, :].shape)
-        res = self.main(node_feature, [hop_feature], [nn_idx_f2v], [
-                        nn_idx_v2f], [etype_f2v], [etype_v2f])
+        res = self.main(node_feature,
+                        [hop_feature, nhop_feature],
+                        [nn_idx_f2v, self.hnn_idx_f2v.repeat(bsize, 1, 1)],
+                        [nn_idx_v2f, self.hnn_idx_v2f.repeat(bsize, 1, 1)],
+                        [etype_f2v, self.hetype_f2v.repeat(bsize, 1, 1, 1)],
+                        [etype_v2f, self.hetype_v2f.repeat(bsize, 1, 1, 1)])
 
         if self.with_residual:
             res = res + node_feature[:, :1, :, :]

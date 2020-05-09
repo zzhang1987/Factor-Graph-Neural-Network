@@ -3,6 +3,7 @@ from .mp_nn import mp_conv_v2, mp_conv_type, base_mp_nn
 from .base_model import iid_mapping, iid_mapping_bn, iid_mapping_in
 from .mp_nn_residual import mp_conv_residual
 from .base_model import base_mp_nn
+import pdb
 
 
 class FVModuleBase (torch.nn.Module):
@@ -120,6 +121,8 @@ class FactorNN(torch.nn.Module):
                 etype_f2v: list,
                 etype_v2f: list):
 
+        # pdb.set_trace()
+
         nnode_feature = self.node_mapping_module(node_feature)
         nhop_feature = [m(f) for f, m in zip(
             hop_features, self.factor_mapping_modules)]
@@ -136,11 +139,8 @@ class FactorNN(torch.nn.Module):
                 nv = self.mpnn_forward(
                     self.f2v_modules[idx][jidx], nhop_feature[jidx], nn_idx_f2v[jidx], etype_f2v[jidx])
                 # print('nv shape', nv.shape)
-
                 nfeature = nfeature + nv
 
-                self.mpnn_forward(
-                    self.v2f_modules[idx][jidx], nnode_feature, nn_idx_v2f[jidx], etype_v2f[jidx])
                 nf = self.v2f_modules[idx][jidx](
                     nnode_feature, nn_idx_v2f[jidx], etype_v2f[jidx])
                 nffeature[jidx] = nffeature[jidx] + nf
@@ -168,5 +168,5 @@ class FactorNN(torch.nn.Module):
         if self.final_filter is not None:
             final_res = self.final_filter(final_res, node_feature)
         # final_res = self.final_classifier(nhop_feature)
-        print(final_res.shape)
+        # print(final_res.shape)
         return final_res
