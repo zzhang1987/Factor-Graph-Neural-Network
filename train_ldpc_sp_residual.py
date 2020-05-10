@@ -291,8 +291,8 @@ def test(args, model):
     for _, (node_feature, hop_feature, nn_idx_f2v, nn_idx_v2f, efeature_f2v, efeature_v2f, label, sigma_b) in enumerate(test_loader):
         if args.use_cuda:
             if args.use_cuda:
-                node_feature, hop_feature, nn_idx_f2v, nn_idx_v2f, efeature_f2v, efeature_v2f, label = to_cuda(
-                    node_feature, hop_feature, nn_idx_f2v, nn_idx_v2f, efeature_f2v, efeature_v2f, label)
+                node_feature, hop_feature, nn_idx_f2v, nn_idx_v2f, efeature_f2v, efeature_v2f, label, sigma_b = to_cuda(
+                    node_feature, hop_feature, nn_idx_f2v, nn_idx_v2f, efeature_f2v, efeature_v2f, label, sigma_b)
 
         if len(node_feature.shape) == 3:
             node_feature = node_feature.unsqueeze(-1)
