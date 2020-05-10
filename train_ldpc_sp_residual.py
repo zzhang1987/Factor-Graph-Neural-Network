@@ -131,7 +131,7 @@ def parse_args():
                         help="path of the testing dataset")
 
     parser.add_argument('--filename', type=str, default='ldpc_data/96.3.963')
-    parser.add_argument('--train', action='store_true', default=True)
+    parser.add_argument('--train', action='store_true', default=False)
 
     parser.add_argument('--batch_size', type=int, default=32)
     parser.add_argument('--aggregator', type=str, default='max')
@@ -267,7 +267,7 @@ def test(args, model):
     test_dataset = lib.data.Codes_SP(args.test_path, train=False)
 
     test_loader = torch.utils.data.DataLoader(test_dataset,
-                                              batch_size=1,
+                                              batch_size=100,
                                               shuffle=False,
                                               num_workers=8,
                                               worker_init_fn=worker_init_fn)
@@ -290,10 +290,6 @@ def test(args, model):
     SNR = [0, 1, 2, 3, 4]
     for _, (node_feature, hop_feature, nn_idx_f2v, nn_idx_v2f, efeature_f2v, efeature_v2f, label, sigma_b) in enumerate(test_loader):
         if args.use_cuda:
-            # print(nfeature)
-            # print(hops)
-            # print(label)
-            # print(sigma_b)
             if args.use_cuda:
                 node_feature, hop_feature, nn_idx_f2v, nn_idx_v2f, efeature_f2v, efeature_v2f, label = to_cuda(
                     node_feature, hop_feature, nn_idx_f2v, nn_idx_v2f, efeature_f2v, efeature_v2f, label)
@@ -310,19 +306,22 @@ def test(args, model):
         pred_int = (pred >= 0).long().squeeze()
         label = label.squeeze()
 
-        b = sigma_b.squeeze().item()
-        i = round(cur_SNR.squeeze().item())
+        for csnr in SNR:
+            for b in range(6):
+                indice = (sigma_b.long() == b) & (abs(cur_SNR - csnr) < 1e-3)
+                acc_cnt[csnr][b] += torch.sum(pred_int[indice, :48]
+                                              == label[indice, :48]).item()
+                acc_tot[csnr][b] += torch.sum(indice) * 48
 
         # print(i, b)
-        acc_cnt[i][b] += torch.sum(pred_int[:48] == label[:48]).item()
-        acc_tot[i][b] += 48
-        print(
-            'snr = {} sigma_b = {}  Correct = {}/48'.format(i, b, torch.sum(pred_int[:48] == label[:48]).item()))
+
+        # print(
+        #     'snr = {} sigma_b = {}  Correct = {}/48'.format(i, b, torch.sum(pred_int[:48] == label[:48]).item()))
 
         # parameters = list(model.parameters()) + list(emodel_high.parameters())
         # torch.nn.utils.clip_grad_norm(parameters, 1.0)
 
-        all_correct = torch.sum(pred_int[:48] == label[:48])
+        all_correct = torch.sum(pred_int[:, :48] == label[:, :48])
 
         acc_seq.append(all_correct.item())
         tot += np.prod(label.shape) // 2

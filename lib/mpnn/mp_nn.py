@@ -91,8 +91,8 @@ class mp_conv_v2(base_mp_nn):
         batch_size = nn_idx.shape[0]
         if len(node_feature.shape) > 3:
             node_feature = node_feature.squeeze()  # shape n x b x c
-        if batch_size == 1:
-            node_feature = node_feature.unsqueeze(0)
+            if batch_size == 1:
+                node_feature = node_feature.unsqueeze(0)
         # print(node_feature.shape)
         # print(nn_idx.shape)
         assert (batch_size == node_feature.shape[0])

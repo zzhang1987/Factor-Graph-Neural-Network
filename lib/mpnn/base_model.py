@@ -2,6 +2,11 @@ import torch
 
 
 class base_mp_nn(torch.nn.Module):
+
+    NO_EXTENSION = 0
+    ORIG_WITH_NEIGHBOR = 1
+    ORIG_WITH_DIFF = 2
+
     """
     Base class for message passing neural network
     """
