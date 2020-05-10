@@ -288,7 +288,7 @@ def test(args, model):
     model.eval()
     # pdb.set_trace()
     SNR = [0, 1, 2, 3, 4]
-    for _, (node_feature, hop_feature, nn_idx_f2v, nn_idx_v2f, efeature_f2v, efeature_v2f, label, sigma_b) in enumerate(test_loader):
+    for _, (node_feature, hop_feature, nn_idx_f2v, nn_idx_v2f, efeature_f2v, efeature_v2f, label, sigma_b) in tqdm(enumerate(test_loader)):
         if args.use_cuda:
             if args.use_cuda:
                 node_feature, hop_feature, nn_idx_f2v, nn_idx_v2f, efeature_f2v, efeature_v2f, label, sigma_b = to_cuda(
