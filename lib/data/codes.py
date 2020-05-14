@@ -11,7 +11,7 @@ import pdb
 
 
 class LDPCGenerator:
-    def __init__(self):
+    def __init__(self, sum_hop=False):
         self.code_len = 48
         self.Gfile = os.path.join(
             pathlib.Path(__file__).parent.absolute(),
@@ -22,6 +22,8 @@ class LDPCGenerator:
             '../../ldpc_data/96.3.963'
         )
         self.get_factor_sturcture()
+        self.sum_hop = sum_hop
+        # self.snr = snr
 
     def get_factor_sturcture(self):
         n_nodes = 96 + 48
@@ -71,6 +73,7 @@ class LDPCGenerator:
 
     def get_mpnn_sp_structure(self, y):
         hop = self.get_highorder_feature(y)
+        # hop = torch.sum(hop, dim=1)
         nn_idx_f2v = self.nn_idx[:96, :3] - 96
         nn_idx_v2f = self.nn_idx[96:, :]
         efeature_f2v = np.take(hop, nn_idx_f2v.reshape(-1),
@@ -188,10 +191,13 @@ class ContinusCodes(Dataset):
 
 
 class ContinousCodesSP(Dataset):
-    def __init__(self):
+    def __init__(self, snr=None):
         self.len = 10000
         self.sigma_b = [0, 1, 2, 3, 4, 5]
-        self.snr_db = [0, 1, 2, 3, 4]
+        if snr is not None:
+            self.snr_db = [snr]
+        else:
+            self.snr_db = [0, 1, 2, 3, 4]
         self.generator = LDPCGenerator()
 
     def __len__(self):

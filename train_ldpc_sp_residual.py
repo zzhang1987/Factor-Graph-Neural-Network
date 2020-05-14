@@ -120,6 +120,8 @@ def parse_args():
                         default=True,
                         help="Use cuda or not")
 
+    parser.add_argument('--snr', type=int, default=None, help="snr")
+
     parser.add_argument('--train_path',
                         type=str,
                         default="ldpc_data/train.pt",
@@ -153,7 +155,7 @@ def worker_init_fn(idx):
 
 def train(args, model,  writer, model_dir):
 
-    train_dataset = lib.data.ContinousCodesSP()
+    train_dataset = lib.data.ContinousCodesSP(snr=args.snr)
 
     train_loader = torch.utils.data.DataLoader(train_dataset,
                                                batch_size=args.batch_size,
@@ -196,7 +198,7 @@ def train(args, model,  writer, model_dir):
         }
 
     def get_model_path():
-        return os.path.join(model_dir, '{}_nn_factor_epoches_{}.pt'.format(args.model_name, epoch))
+        return os.path.join(model_dir, '{}_nn_factor_epoches_{}_snr_{}.pt'.format(args.model_name, epoch, args.snr))
 
     print('training started!')
     for epoch in tqdm(range(start_epoch, args.n_epochs)):
@@ -244,7 +246,7 @@ def train(args, model,  writer, model_dir):
             sigma_b_loss_seq.append(sigma_b_loss.item())
 
             if gcnt % 10 == 0:
-                logging.info('epoch = {} bcnt = {} loss = {} acc = {}'.format(
+                print('epoch = {} bcnt = {} loss = {} acc = {}'.format(
                     epoch, bcnt, np.mean(loss_seq), np.mean(acc_seq)))
                 writer.add_scalar('syn_train/loss', np.mean(loss_seq), gcnt)
                 writer.add_scalar('syn_train/sigma_b_loss',
@@ -340,7 +342,7 @@ def main():
 
     nfeature_dim = 2
     hop_order = 6
-    nedge_types = 8
+    nedge_types = 4
     model = LDPCModel(nfeature_dim, hop_order, nedge_types)
 
     def get_model_description():
