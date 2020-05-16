@@ -16,4 +16,4 @@
 module load CUDA/9.2.148.1
 
 cd ${HOME}/FGNN
-python train_ldpc_sp_residual.py --train --n_epochs 2000 --snr ${SLURM_JOB_ID}
+python train_ldpc_sp_residual.py --train --n_epochs 2000 --snr ${SLURM_ARRAY_TASK_ID}

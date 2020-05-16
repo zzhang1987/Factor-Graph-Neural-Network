@@ -22,10 +22,10 @@ class LDPCModel(torch.nn.Module):
 
         self.main = FactorNN(nfeature_dim,
                              [hop_order, 96],
-                             [64, 64, 64, 128, 128, 64, 64],
+                             [64, 64, 64, 128, 256, 256, 128, 64, 64],
                              [nedge_type, 1],
                              2,
-                             skip_link={3: 2, 4: 1, 5: 0},
+                             skip_link={4: 3, 5: 2, 7: 0},
                              ret_high=True)
 
         self.emodel_f2v = torch.nn.Sequential(torch.nn.Conv2d(7, 64, 1),
@@ -355,7 +355,7 @@ def main():
         model.cuda()
 
     if args.train:
-        subdir = f'train_syn_hop_factor_{args.model_name}_at_{datetime.datetime.now().strftime("%Y-%m-%d_%H:%M:%S")}'
+        subdir = f'train_syn_hop_factor_{args.model_name}_snr_{args.snr}_at_{datetime.datetime.now().strftime("%Y-%m-%d_%H:%M:%S")}'
         utils.init_logger('./logs/', subdir, print_log=True)
         logging.info(str(args))
         logdir = f'./tf_logs/{subdir}'

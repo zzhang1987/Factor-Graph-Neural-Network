@@ -121,6 +121,12 @@ xt::pyarray<T> t2y(xt::pyarray<long int> t, T snr_db, T sigma_b, T rho){
     return res;
 }
 
+template <typename T>
+xt::pyarray<T> y2b(xt::pyarray<T>& t, T snr_db){
+    T gcx = std::pow(10, snr_db / 20.0);
+    return 1.0 / (1.0 + xt::exp(-2.0 * gcx * t));
+}
+
 void init_seed(int seed){
     xt::random::seed(seed);
 }
@@ -130,6 +136,7 @@ PYBIND11_MODULE(MNC, m) {
     m.doc() = "Test module for xtensor python bindings";
     m.def("s2t", s2t<long int>, "Non-uniform motion blur convolution.");
     m.def("t2y", t2y<double>, "t2y");
+    m.def("y2b", y2b<double>, "y2b");
     m.def("init_seed", init_seed, "init_seed");
 }
 

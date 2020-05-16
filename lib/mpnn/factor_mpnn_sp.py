@@ -30,7 +30,7 @@ class FactorNN(torch.nn.Module):
                  netype_list,
                  nclass=2,
                  gnn_immediate_dim=64,
-                 max_mpnn_dim=64,
+                 max_mpnn_dim=128,
                  final_filter=None,
                  skip_link={},
                  aggregator='max',
@@ -49,7 +49,8 @@ class FactorNN(torch.nn.Module):
         self.factor_mapping_modules = []
 
         for dim in factor_feature_dim_list:
-            self.factor_mapping_modules.append(iid_mapping_bn(dim, self.map_dim))
+            self.factor_mapping_modules.append(
+                iid_mapping_bn(dim, self.map_dim))
 
         for idx, m in enumerate(self.factor_mapping_modules):
             self.add_module('factor_mapping_modules_{}'.format(idx), m)
