@@ -15,4 +15,4 @@
 module load CUDA/9.2.148.1
 
 cd ${HOME}/FGNN
-python train_ldpc_sp_residual.py --train --n_epochs 2000
+python train_ldpc_sp_residual.py --train --n_epochs 2000 --model_path model_ldpc/train_syn_hop_factor_FactorNN_snr_None_at_2020-05-16_12\:50\:42/FactorNN_nn_factor_epoches_339_snr_None.pt

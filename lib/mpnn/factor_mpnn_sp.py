@@ -140,13 +140,14 @@ class FactorNN(torch.nn.Module):
             nffeature = [m(f)
                          for f, m in zip(nhop_feature, self.f2f_modules[idx])]
             for jidx in range(len(self.f2v_modules[idx])):
+                #print(nn_idx_f2v[jidx][0, :, :])
                 nv = self.mpnn_forward(
-                    self.f2v_modules[idx][jidx], nhop_feature[jidx], nn_idx_f2v[jidx], etype_f2v[jidx])
+                    self.f2v_modules[idx][jidx], nhop_feature[jidx], nn_idx_f2v[jidx].long(), etype_f2v[jidx])
                 # print('nv shape', nv.shape)
                 nfeature = nfeature + nv
 
                 nf = self.v2f_modules[idx][jidx](
-                    nnode_feature, nn_idx_v2f[jidx], etype_v2f[jidx])
+                    nnode_feature, nn_idx_v2f[jidx].long(), etype_v2f[jidx])
                 nffeature[jidx] = nffeature[jidx] + nf
 
             if nin == nout:
