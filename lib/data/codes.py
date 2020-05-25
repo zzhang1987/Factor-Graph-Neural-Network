@@ -60,6 +60,38 @@ class LDPCGenerator:
             self.etype = efeature
             self.nn_idx = nn_idx
 
+    def get_pairwise_structure(self):
+        n_nodes = 96
+        n_edges = 3 * 6 # upper bound
+        nn_idx = np.zeros((n_nodes, n_edges)).astype(np.int64)
+        efeature = np.zeros((1, n_nodes, n_edges)).astype(np.float32)
+
+        v2f = np.zeros((96, 3)).astype(np.int64)
+        f2v = np.zeros((48, 6)).astype(np.int64)
+
+        with open(self.ldpc_file) as f:
+            for i in range(4):
+                f.readline()
+
+            for i in range(96):
+                v2f[i, :] = list(map(lambda x: int(x)-1, f.readline().strip().split()))
+
+            for i in range(48):
+                f2v[i, :] = list(map(lambda x: int(x)-1, f.readline().strip().split()))
+
+            for i in range(96):
+                k = 0
+                for f in v2f[i]:
+                    for v in f2v[f]:
+                        nn_idx[i, k] = v
+                        efeature[0, i, k] = 1
+                        k += 1
+
+            self.factors = f2v
+            self.etype = efeature
+            self.nn_idx = nn_idx
+
+
     def __call__(self, snr_db, sigma_b):
 
         s = np.random.randint(0, 2, self.code_len)
