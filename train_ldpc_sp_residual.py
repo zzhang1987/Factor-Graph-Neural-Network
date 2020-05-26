@@ -72,8 +72,6 @@ class LDPCModel(torch.nn.Module):
             nhop_feature = node_feature[:, 0, :, :]
             nhop_feature = nhop_feature.reshape(bsize, 96, 1, 1)
 
-        # print(nn_idx_f2v[0, :, :].shape)
-        # print(nn_idx_v2f[0, :, :].shape)
         res, nhops = self.main(node_feature,
                                [hop_feature, nhop_feature],
                                [nn_idx_f2v, self.hnn_idx_f2v.repeat(

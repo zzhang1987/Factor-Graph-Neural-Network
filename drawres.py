@@ -1,5 +1,7 @@
 import matplotlib.pyplot as plt
+from matplotlib import pylab
 import numpy as np
+import matplotlib
 
 res_ldpc = [[1.22166667e-01, 1.32750000e-01, 1.45937500e-01, 1.54062500e-01,
              1.58187500e-01, 1.56145833e-01],
@@ -51,15 +53,39 @@ res_ldpc_burst = np.asarray(res_ldpc_burst)
 ours = np.asarray(ours)
 bits = np.asarray(bits)
 
+Colors = [[0., 0.5, 0.5, 1.],
+          [1., 0.11692084, 0., 1.],
+          [1, 0.00196078, 1., 1.],
+          [0., 0.50392157, 1., 1.],
+          [0.08538899, 1., 0.88235294, 1.],
+          [0.49019608, 1., 0.47754586, 1.],
+          [0.5, 1., 0.17273877, 1.],
+          [0., 0, 0., 0.5],
+          [1., 0., 1., 1.],
+          [0.1, 0.9, 0.1, 1]]
+Markers = ['o', 'v', 'o', 'd', 'x', 'v', 'h', 'D', 'H', 'v']
+LineStype = ['-', '--', '-.', '-', '-', '--', '-', '--', '-.', '-']
+
+
 for i in range(6):
-    plt.figure(i)
-    plt.plot(bits[:, i], label='Bits Baseline')
 
-    plt.plot(res_ldpc[:, i], label='LDPC')
-    plt.plot(res_ldpc_burst[:, i], label='LDPC_Burst')
-    plt.plot(ours[:, i], label='Ours')
-    plt.legend()
-    plt.yscale('log')
-    plt.show()
+    figData = pylab.figure(num=i, figsize=(4, 3), dpi=80,
+                           facecolor='w', edgecolor='k')
+    ax = pylab.gca()
+    font = {'family': 'Times New Roman',
+            'size': 12}
+    matplotlib.rc('font', **font)
+    pylab.plot(bits[:, i], label='Bits Baseline',
+               color=Colors[7], linestyle='--')
 
+    pylab.plot(res_ldpc[:, i], label='LDPC',
+               color=Colors[0], marker=Markers[1])
+    pylab.plot(res_ldpc_burst[:, i], label='LDPC_Burst',
+               color=Colors[2], marker=Markers[2])
+    pylab.plot(ours[:, i], label='Ours', color=Colors[1], marker=Markers[4])
+    pylab.legend()
+    pylab.yscale('log')
+    pylab.show()
+
+    figData.savefig('LDPC_Sigmab_{}.pdf'.format(i))
     # break
