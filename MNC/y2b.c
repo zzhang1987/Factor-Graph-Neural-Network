@@ -28,12 +28,12 @@ static void c_defaults ( y2b_control * ) ;
 static int    process_command ( int , char ** , y2b_control * ) ; 
 static void   print_usage ( char ** , FILE * ,  y2b_control *  );
 
-void   main ( int , char ** ) ;
+int   main ( int , char ** ) ;
 
 /*
         MAIN
                      */
-void main ( int argc, char *argv[] )
+int main ( int argc, char *argv[] )
 {
   y2b_control           c ;
 

@@ -28,12 +28,11 @@ static void c_defaults ( r2b_control * ) ;
 static int    process_command ( int , char ** , r2b_control * ) ; 
 static void   print_usage ( char ** , FILE * ,  r2b_control *  );
 
-void   main ( int , char ** ) ;
 
 /*
         MAIN
                      */
-void main ( int argc, char *argv[] )
+int main ( int argc, char *argv[] )
 {
   r2b_control           c ;
 

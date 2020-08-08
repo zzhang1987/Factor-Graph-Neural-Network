@@ -2,6 +2,11 @@ import torch
 
 
 class base_mp_nn(torch.nn.Module):
+
+    NO_EXTENSION = 0
+    ORIG_WITH_NEIGHBOR = 1
+    ORIG_WITH_DIFF = 2
+
     """
     Base class for message passing neural network
     """
@@ -69,7 +74,17 @@ class iid_mapping_bn(torch.nn.Module):
         super(iid_mapping_bn, self).__init__()
         self.main = torch.nn.Sequential(
             torch.nn.Conv2d(nin, nout, 1, bias=bias),
-            torch.nn.BatchNorm2d(nout), torch.nn.LeakyReLU(inplace=True))
+            torch.nn.BatchNorm2d(nout), torch.nn.ReLU(inplace=True))
+
+    def forward(self, x):
+        return self.main(x)
+
+
+class iid_mapping_in(torch.nn.Module):
+    def __init__(self, nin, nout, bias=True):
+        super(iid_mapping_in, self).__init__()
+        self.main = torch.nn.Sequential(torch.nn.Conv2d(nin, nout, 1, bias=bias),
+                                        torch.nn.InstanceNorm2d(nout), torch.nn.ReLU())
 
     def forward(self, x):
         return self.main(x)

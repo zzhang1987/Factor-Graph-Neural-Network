@@ -50,12 +50,12 @@ static int check_alist_MN ( alist_matrix * , zb2x_vectors *vec ) ;
 static int hook_zb2x_vec_to_bnd ( bnd_param *p , zb2x_vectors *vec ) ;
 static double h2 ( double ) ;
 
-void   main ( int , char ** ) ;
+int   main ( int , char ** ) ;
 
 /*
         MAIN
                      */
-void main ( int argc, char *argv[] )
+int main ( int argc, char *argv[] )
 {
   bnd_control         bndc ; 
   bnd_param           bndp ;

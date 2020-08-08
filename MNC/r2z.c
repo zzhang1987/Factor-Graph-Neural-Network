@@ -27,12 +27,12 @@ static void c_defaults ( r2z_control * ) ;
 static int    process_command ( int , char ** , r2z_control * ) ; 
 static void   print_usage ( char ** , FILE * ,  r2z_control *  );
 
-void   main ( int , char ** ) ;
+int   main ( int , char ** ) ;
 
 /*
         MAIN
                      */
-void main ( int argc, char *argv[] )
+int main ( int argc, char *argv[] )
 {
   r2z_control           c ;
 

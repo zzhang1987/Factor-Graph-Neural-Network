@@ -3,8 +3,14 @@ __pycache__/
 *.py[cod]
 *$py.class
 
+
+
 # C extensions
 *.so
+*.o 
+
+#pycharm 
+.idea
 
 # Distribution / packaging
 .Python
@@ -30,6 +36,9 @@ MANIFEST
 #  before PyInstaller builds the exe, so as to inject date/other infos into it.
 *.manifest
 *.spec
+
+#slurm files
+*.out
 
 # Installer logs
 pip-log.txt

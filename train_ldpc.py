@@ -133,6 +133,7 @@ def train(args, model, emodel_high, writer, model_dir):
                 nfeature = nfeature.unsqueeze(-1)
 
             etype_high = emodel_high(efeature) * etype
+            # print(etype_high[0, :, 0, :].permute(1, 0))
             bsize = nfeature.shape[0]
 
             pred, _ = model(nfeature, [hops],
@@ -232,6 +233,7 @@ def test(args, model, emodel_high):
             for b in range(6):
                 indice = (sigma_b == b) & (abs(cur_SNR-elem) < 1e-3)
                 # print(indice)
+                print(b)
                 acc_cnt[i][b] += torch.sum(pred_int[indice, :48]
                                            == label[indice, :48])
                 acc_tot[i][b] += torch.sum(indice) * 48
