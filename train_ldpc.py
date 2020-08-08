@@ -135,29 +135,15 @@ def train(args, model, emodel_high, writer, model_dir):
             etype_high = emodel_high(efeature) * etype
             bsize = nfeature.shape[0]
 
-            # print('efeature_high', efeature_high.shape)
-            # print('etype_high', etype_high.shape)
-
-            # print('nfeature', nfeature.shape)
-            # print('hops', hops.shape)
-
-            # print('nn_idx_high', nn_idx_high.shape)
-            # print('etype_high', etype_high.shape)
-
             pred, _ = model(nfeature, [hops],
                             [[
                                 nn_idx,
                                 etype_high
                             ]])
-            # print(pred.shape)
-            # print(label.shape)
-
-            # print(pred.squeeze()[0, :])
 
             pred = pred.squeeze()[:, :48].contiguous()
             label = label[:, :48].contiguous()
 
-            # print(label.shape)
             loss = torch.nn.functional.binary_cross_entropy_with_logits(
                 pred.view(-1), label.view(-1).float())
             loss.backward()

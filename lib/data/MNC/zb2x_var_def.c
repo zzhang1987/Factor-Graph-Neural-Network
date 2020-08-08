@@ -1,0 +1,13 @@
+  c->verbose = 0 ;            /* -v verbose         */
+  c->bnfromfile = 1 ;         /* - -                */
+  c->bsfromfile = 1 ;         /* - -                */
+  c->bfromfile = 1 ;          /* - -                */
+  c->bfn = 0.1 ;              /* -bfn fn            */
+  c->bfs = 0.5 ;              /* -bfs fs            */
+  c->zfromfile = 0 ;          /* - -                */
+  c->zfixed = 0 ;             /* -zfixed z          */
+  c->bsuffix = 0 ;            /* -bsuffix bs        */
+  c->zsuffix = 0 ;            /* -zsuffix zs        */
+  c->xsuffix = 0 ;            /* -xsuffix xs        */
+  c->xtofile = 1 ;            /* - -                */
+  c->xsourceonly = 0 ;        /* -xso xsourceonly   */
