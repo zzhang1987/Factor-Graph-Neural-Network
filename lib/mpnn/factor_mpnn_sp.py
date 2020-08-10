@@ -84,9 +84,9 @@ class FactorNN(torch.nn.Module):
 
                 elif nin <= max_mpnn_dim and nout <= max_mpnn_dim:
                     cf2v_module.append(mp_conv_v2(
-                        nin, nout, netype, extension=mp_conv_type.NO_EXTENSION, aggregtor=aggregator))
+                        nin, nout, netype, extension=mp_conv_type.NO_EXTENSION, aggregator=aggregator))
                     cv2f_module.append(mp_conv_v2(
-                        nin, nout, netype, extension=mp_conv_type.NO_EXTENSION, aggregtor=aggregator))
+                        nin, nout, netype, extension=mp_conv_type.NO_EXTENSION, aggregator=aggregator))
                 else:
                     cf2v_module.append(mp_conv_residual(
                         nin, gnn_immediate_dim, netype, extension=mp_conv_type.NO_EXTENSION, with_residual=False, nout=nout, aggregator=aggregator))

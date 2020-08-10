@@ -23,7 +23,7 @@ class mp_conv_v2(base_mp_nn):
                  bn=True,
                  extension=mp_conv_type.ORIG_WITH_DIFF,
                  activation_fn='relu',
-                 aggregtor='softmax'):
+                 aggregator='softmax'):
         """
         :param nin: dimension of input features
         :param nou: dimension of output features
@@ -65,27 +65,27 @@ class mp_conv_v2(base_mp_nn):
         else:
             self.activation_fn = None
 
-        if isinstance(aggregtor, str):
-            if aggregtor == 'max':
+        if isinstance(aggregator, str):
+            if aggregator == 'max':
 
                 def agg_max(x):
                     res, *_ = torch.max(x, dim=3, keepdim=True)
                     return res
 
-                self.aggregtor = agg_max
+                self.aggregator = agg_max
 
-            elif aggregtor == 'softmax':
+            elif aggregator == 'softmax':
                 def agg_softmax(x, gamma=3):
                     res = 1.0 / gamma * \
                         torch.logsumexp(gamma * x, dim=3, keepdim=True)
                     return res
                 # print('Here')
-                self.aggregtor = agg_softmax
-            elif aggregtor == 'mean':
-                self.aggregtor = lambda x: torch.mean(x, dim=3, keepdim=True)
+                self.aggregator = agg_softmax
+            elif aggregator == 'mean':
+                self.aggregator = lambda x: torch.mean(x, dim=3, keepdim=True)
 
         else:
-            self.aggregtor = aggregtor
+            self.aggregator = aggregator
 
     def to_edge_feature(self, node_feature, nn_idx):
         batch_size = nn_idx.shape[0]
@@ -157,8 +157,8 @@ class mp_conv_v2(base_mp_nn):
                                                        self.nou)
         nfeature = edge_feature.permute(0, 3, 1, 2).contiguous()
 
-        if self.aggregtor is not None:
-            nfeature = self.aggregtor(nfeature)
+        if self.aggregator is not None:
+            nfeature = self.aggregator(nfeature)
             # print(nfeature.shape)
         if self.bias is not None:
             # print(nfeature.shape)

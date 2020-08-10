@@ -26,7 +26,7 @@ class mp_conv_residual(base_mp_nn):
                                          SyncBatchNorm(nmed),
                                          torch.nn.LeakyReLU(inplace=True))
         self.mp_conv = mp_conv_v2(
-            nmed, nmed, netype, extension=extension, aggregtor=aggregator)
+            nmed, nmed, netype, extension=extension, aggregator=aggregator)
 
         if nout is None:
             nout = nin

@@ -17,7 +17,7 @@ from utils.types import str2bool, to_cuda
 
 
 class LDPCModel(torch.nn.Module):
-    def __init__(self, nfeature_dim, hop_order, nedge_type, with_residual=True):
+    def __init__(self, nfeature_dim, hop_order, nedge_type, with_residual=True, aggregator='max'):
         super(LDPCModel, self).__init__()
 
         self.main = FactorNN(nfeature_dim,
@@ -26,7 +26,8 @@ class LDPCModel(torch.nn.Module):
                              [nedge_type, 1],
                              2,
                              skip_link={4: 3, 5: 2, 7: 0},
-                             ret_high=True)
+                             ret_high=True,
+                             aggregator=aggregator)
 
         self.emodel_f2v = torch.nn.Sequential(torch.nn.Conv2d(7, 64, 1),
                                               torch.nn.ReLU(inplace=True),
@@ -158,7 +159,7 @@ def train(args, model,  writer, model_dir):
     train_loader = torch.utils.data.DataLoader(train_dataset,
                                                batch_size=args.batch_size,
                                                shuffle=True,
-                                               num_workers=8,
+                                               num_workers=16,
                                                worker_init_fn=worker_init_fn)
 
     optimizer = torch.optim.Adam(
@@ -265,7 +266,7 @@ def train(args, model,  writer, model_dir):
 
 def test(args, model):
     test_dataset = lib.data.Codes_SP(args.test_path, train=False)
-
+    print('The test set has {} items'.format(len(test_dataset)))
     test_loader = torch.utils.data.DataLoader(test_dataset,
                                               batch_size=100,
                                               shuffle=False,
@@ -313,14 +314,6 @@ def test(args, model):
                                               == label[indice, :48]).item()
                 acc_tot[csnr][b] += torch.sum(indice) * 48
 
-        # print(i, b)
-
-        # print(
-        #     'snr = {} sigma_b = {}  Correct = {}/48'.format(i, b, torch.sum(pred_int[:48] == label[:48]).item()))
-
-        # parameters = list(model.parameters()) + list(emodel_high.parameters())
-        # torch.nn.utils.clip_grad_norm(parameters, 1.0)
-
         all_correct = torch.sum(pred_int[:, :48] == label[:, :48])
 
         acc_seq.append(all_correct.item())
@@ -341,7 +334,8 @@ def main():
     nfeature_dim = 2
     hop_order = 6
     nedge_types = 4
-    model = LDPCModel(nfeature_dim, hop_order, nedge_types)
+    model = LDPCModel(nfeature_dim, hop_order, nedge_types,
+                      aggregator=args.aggregator)
 
     def get_model_description():
         return str(model)

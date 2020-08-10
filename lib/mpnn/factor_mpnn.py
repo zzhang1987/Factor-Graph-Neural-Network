@@ -85,7 +85,7 @@ class factor_mpnn(torch.nn.Module):
             self.mp_merge_modules.append(merge_module)
             self.skip_link = skip_link
 
-    def forward(self, node_features, factor_features, graph_structures):
+    def forward(self, node_features,  factor_features, graph_structures):
         """
         :param node_features: features on nodes 
         :param factor_features: list of features on different types of factors 
