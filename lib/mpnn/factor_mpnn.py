@@ -63,19 +63,20 @@ class factor_mpnn(torch.nn.Module):
                         cmp_nn = torch.nn.Sequential(
                             torch.nn.Conv2d(nin, nout, 1),
                             torch.nn.InstanceNorm2d(nout),
-                            torch.nn.ReLU(inplace=True))
+                            torch.nn.LeakyReLU(inplace=True))
 
                 self.add_module('mp_nn_{}_{}'.format(idx, jdx), cmp_nn)
                 cmodule.append(cmp_nn)
             self.mp_nn_modules.append(cmodule)
-            if(idx < len(dim_mapping_list) - 2):
-                merge_module = iid_mapping_bn(nout * self.nfactor_types, nout)
+            if(idx < len(dim_mapping_list) - 4) or (nout * self.nfactor_types <= 64):
+                merge_module = iid_mapping(nout * self.nfactor_types, nout)
             else:
                 merge_module = torch.nn.Sequential(
                     torch.nn.Conv2d(
                         nout * self.nfactor_types, 256, 1, bias=True),
                     torch.nn.BatchNorm2d(256),
                     torch.nn.LeakyReLU(),
+                    torch.nn.Dropout2d(p=0.5),
                     torch.nn.Conv2d(256, 256, 1, bias=True),
                     torch.nn.LeakyReLU(),
                     torch.nn.Conv2d(256, nout, 1, bias=True)

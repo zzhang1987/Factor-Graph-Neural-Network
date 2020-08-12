@@ -131,7 +131,7 @@ def main():
 
     optimizer = torch.optim.Adam(model.parameters(), lr=3e-3)
     scheduler = torch.optim.lr_scheduler.LambdaLR(
-        optimizer, lr_lambda=lambda x: max(0.98**x, 1e-6))
+        optimizer, lr_lambda=lambda x: max(0.998**x, 1e-6))
     start_epoch = 0
     gcnt = 0
 
@@ -142,6 +142,7 @@ def main():
         scheduler.load_state_dict(ckpt['lr_sche'])
         start_epoch = ckpt['epoch']
         gcnt = ckpt['gcnt']
+        print('model loaded')
 
     def get_model_dict():
         return {
@@ -233,16 +234,15 @@ def main():
         if len(nfeature.shape) == 3:
             nfeature = nfeature.unsqueeze(-1)
 
-        bsize = nfeature.shape[0]
-
-        pred = model(nfeature, pws, hops, nn_idx_pw, nn_idx_high,
-                     efeature_pw, efeature_high)
-        loss = torch.nn.functional.cross_entropy(pred.view(-1, 2),
-                                                 nlabel.view(-1))
-        torch.nn.utils.clip_grad_norm(model.parameters(), 1.0)
+        with torch.no_grad():
+            pred = model(nfeature, pws, hops, nn_idx_pw, nn_idx_high,
+                         efeature_pw, efeature_high)
+            loss = torch.nn.functional.cross_entropy(pred.view(-1, 2),
+                                                     nlabel.view(-1))
 
         loss_seq.append(loss.item())
         gcnt += 1
+        # print(pred.shape)
         pred_int = pred.argmax(dim=-1)
         all_correct = torch.sum(pred_int == nlabel)
         lp_correct = torch.sum(lp_label == nlabel)

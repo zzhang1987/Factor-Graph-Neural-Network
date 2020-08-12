@@ -54,7 +54,7 @@ class iid_mapping(torch.nn.Module):
         super(iid_mapping, self).__init__()
         self.main = torch.nn.Sequential(
             torch.nn.Conv2d(nin, nout, 1, bias=bias),
-            torch.nn.LeakyReLU(inplace=True))
+            torch.nn.ReLU(inplace=True))
 
     def forward(self, x):
         return self.main(x)
