@@ -1,7 +1,0 @@
-name: xsimd-docs
-
-channels:
-  - QuantStack
-
-dependencies:
-  - breathe

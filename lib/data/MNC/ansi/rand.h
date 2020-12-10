@@ -1,3 +1,5 @@
+#ifndef __RAND_H_HGKJUIE
+#define __RAND_H_HGKJUIE
 /* RAND.H - Random number generators. */
 /* Copyright (c) 1992 by Radford M. Neal */
 
@@ -24,3 +26,5 @@
 
 #define ranc() \
   (tan(3.141592654*(ranu()-0.5)))		                      /* From Cauchy */
+
+#endif

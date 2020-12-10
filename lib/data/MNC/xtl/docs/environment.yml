@@ -1,7 +1,0 @@
-name: xtl-docs
-
-channels:
-  - QuantStack
-
-dependencies:
-  - breathe

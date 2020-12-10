@@ -1,34 +1,11 @@
-/*
-   s2t.c
-                                       (c) DJCM 95 11 06 
-
-   - MacKay-Neal Error Correcting Code - 
-   - Reads in s (stream) and writes t=Gs (blocks)
-
-   ======================================================================
-
-   This code is (c) David J.C. MacKay 1994, 1995. It is free software 
-   as defined by the free software foundation. 
-
-     suggested usage:
-
-     s2t -sfile s -tsuffix 1 -Gfile G -tfile t
-
-     this usage reads in s and writes t vectors to t.0001 t.0002 etc.
-
-     The option -smn 1
-     causes the s vector to get prepended to the tfile.
-
-     -n and -k need to be supplied. These should be the n and k 
-     of the NMN code, i.e. the dimensions of the G matrix. 
-
-*/
-
-#include "./ansi/r.h"
-#include "./ansi/rand2.h"
-#include "./ansi/mynr.h"
-#include "./ansi/cmatrix.h"
-#include "./radford/mod2mat.h"
+#include "ansi/r.h"
+#include "ansi/rand2.h"
+#include "ansi/mynr.h"
+#include "ansi/cmatrix.h"
+#include "pybind11/detail/common.h"
+#include "radford/mod2mat.h"
+#include "bnd/bnd.h"
+#include "zb2x.h"
 
 
 #include "pybind11/pybind11.h"
@@ -36,9 +13,11 @@
 #include "xtensor/xadapt.hpp"
 #include "xtensor/xrandom.hpp"
 #include <stdio.h>
+#include <string>
 #define FORCE_IMPORT_ARRAY
 #include "xtensor-python/pyarray.hpp"
 
+#include <iostream>
 
 template <typename T>
 xt::pyarray<T> s2t(const xt::pyarray<T>& source,
@@ -127,6 +106,81 @@ xt::pyarray<T> y2b(xt::pyarray<T>& t, T snr_db){
     return 1.0 / (1.0 + xt::exp(-2.0 * gcx * t));
 }
 
+template <typename IntT, typename T>
+xt::pyarray<IntT> zb2x(xt::pyarray<T>& z, int k, int n, std::string Afile, int xso, int bndloops){
+    bnd_control         bndc ; 
+    bnd_param           bndp ;
+    zb2x_control           c ;
+    zb2x_vectors         vec  ; 
+    zb2x_all             all  ;
+    alist_matrix         a ;
+    if(z.shape().size() != 1){
+        throw pybind11::value_error("source must be 1d array");
+    }
+    int zsize = z.shape()[0];
+    
+    int stillgoing = 1 , message = 0 , failures = 0 ; 
+    char junk[1000] ; 
+
+    all.bndp = &bndp ; 
+    all.bndc = &bndc ; 
+    all.vec  = &vec ; 
+    all.a    = &a ; 
+    all.c    = &c ; 
+    bndp.a   = &a ;
+
+    bnd_defaults(&bndp, &bndc);
+    c_defaults(&c);
+
+    all.c->K = k;
+    all.c->N = n;
+    strcpy(all.c->Afile, Afile.c_str());
+    all.c->xsourceonly = xso;
+    all.c->zfromfile = 0;
+    all.c->zfixed = 0;
+    //strcpy(all.bndc->logfile, "decode.log");
+    //all.bndc->writelog = 1;
+    all.bndc->loops = bndloops;
+    
+    make_sense(&c, &all);
+    make_space(&c, &vec);
+
+    read_allocate_alist(&a, (char *) Afile.c_str());
+    check_alist_MN(&a, &vec);
+
+    hook_zb2x_vec_to_bnd(&bndp, &vec);
+    bnd_allocate(&bndp, &bndc);
+
+    set_up_priors(&vec, &c);
+
+    std::vector<IntT> res;
+    int offset = 0;
+    if((zsize % (k + n)) != 0){
+        throw pybind11::value_error("The length of z vector can not be devided by k + n");
+    }
+    do {
+        message++;
+        int readto = k + n;
+        std::cout << readto << std::endl;
+        for(int i = 0; i < readto; i++){
+            vec.bias[i + offset + 1] = z[i];
+        }
+        if(bndecode(&bndp, &bndc) > 0){
+            // throw pybind11::value_error("Decoding fail at block " + std::to_string(message));
+            std::cerr << "Decoding fail at block " + std::to_string(message) << std::endl; 
+        }
+        for(int i = 0; i < k; i++){
+            res.push_back(vec.x[i + 1]);
+        }
+        offset += (k + n);
+    }while(offset + k + n <= zsize);
+    xt::xarray<IntT> final_res = xt::adapt(res, {res.size()});
+
+    bnd_free(&bndp, &bndc);
+    zb2x_free(&all);
+    return final_res;
+}
+
 void init_seed(int seed){
     xt::random::seed(seed);
 }
@@ -137,14 +191,8 @@ PYBIND11_MODULE(MNC, m) {
     m.def("s2t", s2t<long int>, "Non-uniform motion blur convolution.");
     m.def("t2y", t2y<double>, "t2y");
     m.def("y2b", y2b<double>, "y2b");
+    m.def("zb2x", zb2x<long int, double>, "zb2x");
     m.def("init_seed", init_seed, "init_seed");
 }
 
-#undef DNT
-#undef NLNE
 
-/*
-<!-- hhmts start -->
-Last modified: Wed Dec  6 14:29:52 1995
-<!-- hhmts end -->
-*/

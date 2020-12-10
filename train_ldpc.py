@@ -10,10 +10,92 @@ import time
 from tqdm import tqdm
 
 import lib
-from lib.mpnn import factor_mpnn
+from lib.model.mpnn import factor_mpnn, FactorNN
 import scipy.stats as st
 import utils
-from utils.types import str2bool
+from utils.types import str2bool, to_cuda
+
+
+class LDPCModel(torch.nn.Module):
+    def __init__(self, nfeature_dim, hop_order, nedge_type, with_residual=True):
+        super(LDPCModel, self).__init__()
+
+        self.main = FactorNN(nfeature_dim,
+                             [hop_order, 96],
+                             [64, 64, 64, 128, 256, 256, 128, 64, 64],
+                             [nedge_type, 1],
+                             2,
+                             skip_link={4: 3, 5: 2, 7: 0},
+                             ret_high=True)
+
+        self.emodel_f2v = torch.nn.Sequential(torch.nn.Conv2d(7, 64, 1),
+                                              torch.nn.ReLU(inplace=True),
+                                              torch.nn.Conv2d(64, nedge_type, 1))
+
+        self.emodel_v2f = torch.nn.Sequential(torch.nn.Conv2d(7, 64, 1),
+                                              torch.nn.ReLU(inplace=True),
+                                              torch.nn.Conv2d(64, nedge_type, 1))
+
+        hetype_v2f = np.ones([1, 1, 1, 96]).astype(np.float32)
+        hetype_f2v = np.ones([1, 1, 96, 1]).astype(np.float32)
+
+        hnn_idx_v2f = np.asarray(
+            list(range(96)), dtype=np.int64).reshape(1, 1, 96)
+        hnn_idx_f2v = np.asarray([0] * 96, dtype=np.int64).reshape(1, 96, 1)
+
+        self.hnn_idx_v2f = torch.nn.Parameter(
+            torch.from_numpy(hnn_idx_v2f).long(), requires_grad=False)
+        self.hnn_idx_f2v = torch.nn.Parameter(
+            torch.from_numpy(hnn_idx_f2v).long(), requires_grad=False)
+
+        self.hetype_v2f = torch.nn.Parameter(
+            torch.from_numpy(hetype_v2f), requires_grad=False)
+        self.hetype_f2v = torch.nn.Parameter(
+            torch.from_numpy(hetype_f2v), requires_grad=False)
+
+        self.with_residual = with_residual
+
+        self.nhop_regressor = torch.nn.Sequential(torch.nn.Linear(64, 128),
+                                                  torch.nn.BatchNorm1d(128),
+                                                  torch.nn.ReLU(),
+                                                  torch.nn.Linear(128, 128),
+                                                  torch.nn.ReLU(),
+                                                  torch.nn.Linear(128, 1),
+                                                  torch.nn.ReLU())
+
+    def forward(self, node_feature, hop_feature, nn_idx_f2v, nn_idx_v2f, efeature_f2v, efeature_v2f):
+        etype_f2v = self.emodel_f2v(efeature_f2v)
+        etype_v2f = self.emodel_v2f(efeature_v2f)
+
+        with torch.no_grad():
+            bsize = node_feature.shape[0]
+            nhop_feature = node_feature[:, 0, :, :]
+            nhop_feature = nhop_feature.reshape(bsize, 96, 1, 1)
+
+        res, nhops = self.main(node_feature,
+                               [hop_feature, nhop_feature],
+                               [nn_idx_f2v, self.hnn_idx_f2v.repeat(
+                                   bsize, 1, 1)],
+                               [nn_idx_v2f, self.hnn_idx_v2f.repeat(
+                                   bsize, 1, 1)],
+                               [etype_f2v, self.hetype_f2v.repeat(
+                                   bsize, 1, 1, 1)],
+                               [etype_v2f, self.hetype_v2f.repeat(bsize, 1, 1, 1)])
+
+        if self.with_residual:
+            res = res + node_feature[:, :1, :, :]
+        batch_size = res.shape[0]
+        res = res.squeeze()
+        if batch_size == 1:
+            res = res.unsqueeze(0)
+
+        hhop = nhops[1].squeeze()
+        if bsize == 1:
+            hhop = hhop.unsqueeze(0)
+
+        snr_b_pred = self.nhop_regressor(hhop)
+
+        return res[:, :48].contiguous(), snr_b_pred
 
 
 def parse_args():
@@ -29,17 +111,15 @@ def parse_args():
                         help="Saved model path")
     parser.add_argument('--model_name',
                         type=str,
-                        default='mp_nn_factor',
-                        help="model name (PointNet, GNN)")
+                        default='FactorNN',
+                        help="model name")
     parser.add_argument('--use_cuda',
                         type=str2bool,
                         default=True,
                         help="Use cuda or not")
 
-    parser.add_argument('--train_path',
-                        type=str,
-                        default="ldpc_data/train.pt",
-                        help="path of the training dataset")
+    parser.add_argument('--snr', type=int, default=None, help="snr")
+
 
     parser.add_argument('--test_path',
                         type=str,
@@ -50,6 +130,7 @@ def parse_args():
     parser.add_argument('--train', action='store_true', default=False)
 
     parser.add_argument('--batch_size', type=int, default=32)
+    parser.add_argument('--aggregator', type=str, default='max')
     args = parser.parse_args()
 
     if not torch.cuda.is_available():
@@ -66,9 +147,9 @@ def worker_init_fn(idx):
     lib.data.init_seed(int(seed % 65537))
 
 
-def train(args, model, emodel_high, writer, model_dir):
+def train(args, model,  writer, model_dir):
 
-    train_dataset = lib.data.ContinusCodes()
+    train_dataset = lib.data.ContinousCodesSP(snr=args.snr)
 
     train_loader = torch.utils.data.DataLoader(train_dataset,
                                                batch_size=args.batch_size,
@@ -76,9 +157,8 @@ def train(args, model, emodel_high, writer, model_dir):
                                                num_workers=8,
                                                worker_init_fn=worker_init_fn)
 
-    parameters = list(model.parameters()) + list(emodel_high.parameters())
     optimizer = torch.optim.Adam(
-        parameters, lr=1e-2,  weight_decay=1e-8)
+        model.parameters(), lr=1e-2,  weight_decay=1e-8)
 
     def lr_sched(x, start=10):
         if x <= start:
@@ -90,9 +170,12 @@ def train(args, model, emodel_high, writer, model_dir):
     start_epoch = 0
     gcnt = 0
     if os.path.exists(args.model_path):
-        ckpt = torch.load(args.model_path)
+        if not torch.cuda.is_available():
+            ckpt = torch.load(
+                args.model_path, map_location=torch.device('cpu'))
+        else:
+            ckpt = torch.load(args.model_path)
         model.load_state_dict(ckpt['model_state_dict'])
-        emodel_high.load_state_dict(ckpt['emodel_high_state_dict'])
         optimizer.load_state_dict(ckpt['optimizer_state_dict'])
         scheduler.load_state_dict(ckpt['lr_sche'])
 
@@ -102,7 +185,6 @@ def train(args, model, emodel_high, writer, model_dir):
     def get_model_dict():
         return {
             'model_state_dict': model.state_dict(),
-            'emodel_high_state_dict': emodel_high.state_dict(),
             'optimizer_state_dict': optimizer.state_dict(),
             'lr_sche': scheduler.state_dict(),
             'epoch': epoch,
@@ -110,63 +192,63 @@ def train(args, model, emodel_high, writer, model_dir):
         }
 
     def get_model_path():
-        return os.path.join(model_dir, '{}_nn_factor_epoches_{}.pt'.format(args.model_name, epoch))
+        return os.path.join(model_dir, '{}_nn_factor_epoches_{}_snr_{}.pt'.format(args.model_name, epoch, args.snr))
 
     print('training started!')
     for epoch in tqdm(range(start_epoch, args.n_epochs)):
-        torch.save(get_model_dict(), get_model_path())
+        if (epoch + 1) % 10 == 0:
+            torch.save(get_model_dict(), get_model_path())
 
         logging.info(f'save train result to {get_model_path()}')
 
         loss_seq = []
+        sigma_b_loss_seq = []
         acc_seq = []
-        for bcnt, (nfeature, hops, nn_idx, etype, efeature, label, _) in tqdm(enumerate(train_loader)):
+        for bcnt, (node_feature, hop_feature, nn_idx_f2v, nn_idx_v2f, efeature_f2v, efeature_v2f, label, sigma_b) in tqdm(enumerate(train_loader)):
             optimizer.zero_grad()
             if args.use_cuda:
-                # print(nfeature)
-                # print(hops)
-                # print(label)
-                nfeature, hops, nn_idx, etype, efeature, label \
-                    = nfeature.cuda(), hops.cuda(), nn_idx.cuda(), etype.cuda(), efeature.cuda(), label.cuda()
-            hops = hops.float()
-            if len(nfeature.shape) == 3:
-                nfeature = nfeature.unsqueeze(-1)
+                node_feature, hop_feature, nn_idx_f2v, nn_idx_v2f, efeature_f2v, efeature_v2f, label, sigma_b = to_cuda(
+                    node_feature, hop_feature, nn_idx_f2v, nn_idx_v2f, efeature_f2v, efeature_v2f, label, sigma_b.float())
 
-            etype_high = emodel_high(efeature) * etype
-            # print(etype_high[0, :, 0, :].permute(1, 0))
-            bsize = nfeature.shape[0]
+            if len(node_feature.shape) == 3:
+                node_feature = node_feature.unsqueeze(-1)
 
-            pred, _ = model(nfeature, [hops],
-                            [[
-                                nn_idx,
-                                etype_high
-                            ]])
+            pred, sigma_b_pred = model(node_feature, hop_feature, nn_idx_f2v,
+                                       nn_idx_v2f, efeature_f2v, efeature_v2f)
 
-            pred = pred.squeeze()[:, :48].contiguous()
             label = label[:, :48].contiguous()
-
+            # print(pred.shape)
+            # print(label.shape)
             loss = torch.nn.functional.binary_cross_entropy_with_logits(
                 pred.view(-1), label.view(-1).float())
-            loss.backward()
+            sigma_b_loss = torch.nn.functional.mse_loss(
+                sigma_b_pred.view(-1), (torch.pow(10.0, sigma_b.float()/20)).view(-1))
+
+            allloss = loss + 0.1 * sigma_b_loss
+            allloss.backward()
             # torch.nn.utils.clip_grad_norm(parameters, 1.0)
 
             optimizer.step()
             loss_seq.append(loss.item())
             gcnt += 1
 
-            pred_int = (pred[:, :48] > 0)
+            pred_int = (pred > 0)
             all_correct = torch.sum(pred_int.long() == label)
             acc = all_correct.item() / np.prod(label.shape)
 
             acc_seq.append(acc)
+            sigma_b_loss_seq.append(sigma_b_loss.item())
 
             if gcnt % 10 == 0:
-                logging.info('epoch = {} bcnt = {} loss = {} acc = {}'.format(
+                print('epoch = {} bcnt = {} loss = {} acc = {}'.format(
                     epoch, bcnt, np.mean(loss_seq), np.mean(acc_seq)))
                 writer.add_scalar('syn_train/loss', np.mean(loss_seq), gcnt)
+                writer.add_scalar('syn_train/sigma_b_loss',
+                                  np.mean(sigma_b_loss_seq), gcnt)
                 writer.add_scalar('syn_train/acc', np.mean(acc_seq), gcnt)
                 loss_seq = []
                 acc_seq = []
+                sigma_b_loss_seq = []
 
         scheduler.step()
 
@@ -177,8 +259,8 @@ def train(args, model, emodel_high, writer, model_dir):
         logging.info('training done!')
 
 
-def test(args, model, emodel_high):
-    test_dataset = lib.data.Codes(args.test_path, train=False)
+def test(args, model):
+    test_dataset = lib.data.Codes_SP(args.test_path, train=False)
 
     test_loader = torch.utils.data.DataLoader(test_dataset,
                                               batch_size=100,
@@ -188,62 +270,55 @@ def test(args, model, emodel_high):
 
     assert args.model_path, 'please input model path'
 
-    ckpt = torch.load(args.model_path)
+    if args.use_cuda:
+        ckpt = torch.load(args.model_path)
+    else:
+        ckpt = torch.load(args.model_path, map_location=torch.device('cpu'))
+
     model.load_state_dict(ckpt['model_state_dict'])
-    emodel_high.load_state_dict(ckpt['emodel_high_state_dict'])
 
     acc_seq = []
     acc_cnt = np.zeros((5, 6))
     acc_tot = np.zeros((5, 6))
     tot = 0
     model.eval()
-    emodel_high.eval()
-
+    # pdb.set_trace()
     SNR = [0, 1, 2, 3, 4]
-    for _, (nfeature, hops, nn_idx, etype, efeature, label, sigma_b) in tqdm(enumerate(test_loader)):
+    for _, (node_feature, hop_feature, nn_idx_f2v, nn_idx_v2f, efeature_f2v, efeature_v2f, label, sigma_b) in tqdm(enumerate(test_loader)):
         if args.use_cuda:
-            # print(nfeature)
-            # print(hops)
-            # print(label)
-            # print(sigma_b)
-            nfeature, hops, nn_idx, etype, efeature, label, sigma_b \
-                = nfeature.cuda(), hops.cuda(), nn_idx.cuda(), etype.cuda(), efeature.cuda(), label.cuda(), sigma_b.cuda()
-        cur_SNR = nfeature[:, 1, 0, 0]
-        # print(cur_SNR)
-        hops = hops.float()
-        # print(cur_SNR)
+            if args.use_cuda:
+                node_feature, hop_feature, nn_idx_f2v, nn_idx_v2f, efeature_f2v, efeature_v2f, label, sigma_b = to_cuda(
+                    node_feature, hop_feature, nn_idx_f2v, nn_idx_v2f, efeature_f2v, efeature_v2f, label, sigma_b)
 
-        if len(nfeature.shape) == 3:
-            nfeature = nfeature.unsqueeze(-1)
+        if len(node_feature.shape) == 3:
+            node_feature = node_feature.unsqueeze(-1)
+        cur_SNR = node_feature[:, 1, 0, 0]
 
-        etype_high = emodel_high(efeature) * etype
-        bsize = nfeature.shape[0]
         with torch.no_grad():
-            pred, _ = model(
-                nfeature, [hops],
-                [[
-                    nn_idx,
-                    etype_high
-                ]])
+            pred, _ = model(node_feature, hop_feature, nn_idx_f2v,
+                            nn_idx_v2f, efeature_f2v, efeature_v2f)
 
             pred = pred.squeeze().contiguous()
-        pred_int = (pred > 0).long()
+        pred_int = (pred >= 0).long().squeeze()
+        label = label.squeeze()
 
-        for i, elem in enumerate(SNR):
+        for csnr in SNR:
             for b in range(6):
-                indice = (sigma_b == b) & (abs(cur_SNR-elem) < 1e-3)
-                # print(indice)
-                print(b)
-                acc_cnt[i][b] += torch.sum(pred_int[indice, :48]
-                                           == label[indice, :48])
-                acc_tot[i][b] += torch.sum(indice) * 48
+                indice = (sigma_b.long() == b) & (abs(cur_SNR - csnr) < 1e-3)
+                acc_cnt[csnr][b] += torch.sum(pred_int[indice, :48]
+                                              == label[indice, :48]).item()
+                acc_tot[csnr][b] += torch.sum(indice) * 48
+
+        # print(i, b)
+
+        # print(
+        #     'snr = {} sigma_b = {}  Correct = {}/48'.format(i, b, torch.sum(pred_int[:48] == label[:48]).item()))
 
         # parameters = list(model.parameters()) + list(emodel_high.parameters())
         # torch.nn.utils.clip_grad_norm(parameters, 1.0)
 
         all_correct = torch.sum(pred_int[:, :48] == label[:, :48])
 
-        indice = sigma_b
         acc_seq.append(all_correct.item())
         tot += np.prod(label.shape) // 2
 
@@ -261,28 +336,20 @@ def main():
 
     nfeature_dim = 2
     hop_order = 6
-    if args.model_name == 'mp_nn_factor':
-        model = factor_mpnn(nfeature_dim, [hop_order],
-                            [64, 64, 64, 128,  128, 64, 64, 1],
-                            [2],
-                            skip_link={3: 2, 4: 1, 5: 0})
-
-        emodel_high = torch.nn.Sequential(torch.nn.Conv2d(7, 64, 1),
-                                          torch.nn.ReLU(inplace=True),
-                                          torch.nn.Conv2d(64, 2, 1))
+    nedge_types = 4
+    model = LDPCModel(nfeature_dim, hop_order, nedge_types)
 
     def get_model_description():
-        return str(model) + str(emodel_high)
+        return str(model)
 
     logging.info('model {} created'.format(get_model_description()))
 
     if args.use_cuda:
 
         model.cuda()
-        emodel_high.cuda()
 
     if args.train:
-        subdir = f'train_syn_hop_factor_{args.model_name}_at_{datetime.datetime.now().strftime("%Y-%m-%d_%H:%M:%S")}'
+        subdir = f'train_syn_hop_factor_{args.model_name}_snr_{args.snr}_at_{datetime.datetime.now().strftime("%Y-%m-%d_%H:%M:%S")}'
         utils.init_logger('./logs/', subdir, print_log=True)
         logging.info(str(args))
         logdir = f'./tf_logs/{subdir}'
@@ -292,10 +359,10 @@ def main():
         model_dir = f'./model_ldpc/{subdir}'
         if not os.path.exists(model_dir):
             os.makedirs(model_dir)
-        train(args, model, emodel_high, writer, model_dir)
+        train(args, model, writer, model_dir)
 
     else:
-        test(args, model, emodel_high)
+        test(args, model)
 
 
 if __name__ == '__main__':

@@ -1,3 +1,8 @@
+#ifndef _CMATRIX_H_
+#define _CMATRIX_H_
+#include <stdlib.h>
+#include <stdio.h>
+
 typedef struct {
   int N ;
   int K ; 
@@ -82,3 +87,5 @@ int staircase_alist ( alist_matrix * , int  , int  ,
 				     int , int  , int  ) ;
 int slope_alist ( alist_matrix * , int  , int  , 
 				     int , int  , int  ) ;
+
+#endif

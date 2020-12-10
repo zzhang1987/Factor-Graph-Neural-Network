@@ -24,19 +24,15 @@ if(NUMPY_NOT_FOUND)
 endif()
 
 INCLUDE_DIRECTORIES(${NUMPY_INCLUDE_DIR})
-add_subdirectory(${PROJECT_SOURCE_DIR}/pybind11 ${PROJECT_BINARY_DIR}/pybind11/bin)
-add_subdirectory(${PROJECT_SOURCE_DIR}/xtl ${PROJECT_BINARY_DIR}/xtl/bin)
-add_subdirectory(${PROJECT_SOURCE_DIR}/xsimd ${PROJECT_BINARY_DIR}/xsimd/bin)
-add_subdirectory(${PROJECT_SOURCE_DIR}/xtensor ${PROJECT_BINARY_DIR}/xtensor/bin)
-add_subdirectory(${PROJECT_SOURCE_DIR}/xtensor-python ${PROJECT_BINARY_DIR}/xtensor-python/bin)
+add_subdirectory(${PROJECT_SOURCE_DIR}/3rdparty/pybind11)
+add_subdirectory(${PROJECT_SOURCE_DIR}/3rdparty/xtl)
+add_subdirectory(${PROJECT_SOURCE_DIR}/3rdparty/xtensor)
+add_subdirectory(${PROJECT_SOURCE_DIR}/3rdparty/xtensor-python)
 
-include_directories(${PROJECT_SOURCE_DIR}/xtensor/include)
-include_directories(${PROJECT_SOURCE_DIR}/xtl/include)
-include_directories(${PROJECT_SOURCE_DIR}/xsimd/include)
-include_directories(${PROJECT_SOURCE_DIR}/pybind11/include)
-include_directories(${PROJECT_SOURCE_DIR}/xtensor-python/include)
+include_directories(${PROJECT_SOURCE_DIR}/3rdparty/xtensor/include)
+include_directories(${PROJECT_SOURCE_DIR}/3rdparty/xtl/include)
+include_directories(${PROJECT_SOURCE_DIR}/3rdparty/pybind11/include)
+include_directories(${PROJECT_SOURCE_DIR}/3rdparty/xtensor-python/include)
 
 set(PYBIND11_CPP_STANDARD -std=c++14)
-
-pybind11_add_module(MNC MODULE MNC_py.cpp radford/mod2mat.cpp radford/mod2mat.h)
-
+pybind11_add_module(MNC MODULE MNC_py.cpp zb2x.h zb2x.cpp radford/mod2mat.cpp radford/mod2mat.h bnd/bnd.h bnd/bnd.cpp  ansi/cmatrix.h ansi/cmatrix.cpp ansi/nrutil.h ansi/nrutil.cpp ansi/r.cpp ansi/r.h ansi/rand2.h ansi/rand2.cpp)
