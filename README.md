@@ -38,6 +38,13 @@ Place the file in the root folder of the repo and run
 tar -jxvf synthetic_data.tar.bz2 
 ```
 
+### Dataset generation
+
+You can generate the dataset using the following commands
+```shell
+./generate_rpgm_dataset.sh
+```
+
 ### Training and testing the model 
 
 ``` shell
@@ -51,6 +58,18 @@ python train_syn_pw_factor.py
 python train_syn_hop_factor.py
 ```
 
-## Point Cloud Segmentation
+## LDPC Decoding
 
-Under construction
+
+### Dataset generation
+
+You can generate the dataset using the following commands
+```shell
+./generate_ldpc_dataset.sh
+```
+
+### Training and testing the model 
+
+``` shell
+python train_ldpc.py --train
+```
