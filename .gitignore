@@ -1,2 +1,7 @@
 lib/data/MNC/*.so
 lib/data/MNC/*.dylib
+lib/data/MNC/xtensor.hpp
+lib/data/MNC/CMakeFiles
+lib/data/MNC/compile_commands.json
+*.cmake
+CMakeCache.txt
