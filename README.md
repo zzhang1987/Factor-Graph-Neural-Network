@@ -31,7 +31,7 @@ Eprint = {arXiv:1906.00554},
 
 ### Dataset downloading
 
-Download the generated synthetic dataset from [synthetic_data.tar.bz2](https://drive.google.com/file/d/1Me9UeR8USxqg_SEE-ZstB2R8xHThOfqA/view?usp=sharing).
+Download the generated synthetic dataset from [synthetic_data.tar.bz2](https://drive.google.com/file/d/1NPMdcQsyI7XRxHfDfa2s3kJPNVyOBW41/view?usp=sharing).
 Place the file in the root folder of the repo and run 
 
 ``` shell
