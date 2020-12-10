@@ -5,3 +5,4 @@ lib/data/MNC/CMakeFiles
 lib/data/MNC/compile_commands.json
 *.cmake
 CMakeCache.txt
+__pycache__
