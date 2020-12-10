@@ -1,0 +1,8 @@
+name: xtl-docs
+
+channels:
+  - QuantStack
+
+dependencies:
+  - breathe
+  - sphinx=2.4.4
