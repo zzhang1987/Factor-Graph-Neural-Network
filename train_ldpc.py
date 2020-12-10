@@ -123,7 +123,7 @@ def parse_args():
 
     parser.add_argument('--test_path',
                         type=str,
-                        default="ldpc_data/valid.pt",
+                        default="dataset/ldpc_valid.pt",
                         help="path of the testing dataset")
 
     parser.add_argument('--filename', type=str, default='ldpc_data/96.3.963')
