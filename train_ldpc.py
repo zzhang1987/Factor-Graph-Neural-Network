@@ -17,7 +17,7 @@ from utils.types import str2bool, to_cuda
 
 
 class LDPCModel(torch.nn.Module):
-    def __init__(self, nfeature_dim, hop_order, nedge_type, with_residual=True):
+    def __init__(self, nfeature_dim, hop_order, nedge_type, with_residual=True, aggregator='max'):
         super(LDPCModel, self).__init__()
 
         self.main = FactorNN(nfeature_dim,
@@ -26,7 +26,8 @@ class LDPCModel(torch.nn.Module):
                              [nedge_type, 1],
                              2,
                              skip_link={4: 3, 5: 2, 7: 0},
-                             ret_high=True)
+                             ret_high=True,
+                             aggregator=aggregator)
 
         self.emodel_f2v = torch.nn.Sequential(torch.nn.Conv2d(7, 64, 1),
                                               torch.nn.ReLU(inplace=True),
@@ -119,7 +120,6 @@ def parse_args():
                         help="Use cuda or not")
 
     parser.add_argument('--snr', type=int, default=None, help="snr")
-
 
     parser.add_argument('--test_path',
                         type=str,
@@ -260,7 +260,7 @@ def train(args, model,  writer, model_dir):
 
 
 def test(args, model):
-    test_dataset = lib.data.Codes_SP(args.test_path, train=False)
+    test_dataset = lib.data.Codes(args.test_path, train=False)
 
     test_loader = torch.utils.data.DataLoader(test_dataset,
                                               batch_size=100,
@@ -274,7 +274,7 @@ def test(args, model):
         ckpt = torch.load(args.model_path)
     else:
         ckpt = torch.load(args.model_path, map_location=torch.device('cpu'))
-
+    logging.info("load model from {}".format(args.model_path))
     model.load_state_dict(ckpt['model_state_dict'])
 
     acc_seq = []
@@ -337,7 +337,8 @@ def main():
     nfeature_dim = 2
     hop_order = 6
     nedge_types = 4
-    model = LDPCModel(nfeature_dim, hop_order, nedge_types)
+    model = LDPCModel(nfeature_dim, hop_order, nedge_types,
+                      aggregator=args.aggregator)
 
     def get_model_description():
         return str(model)

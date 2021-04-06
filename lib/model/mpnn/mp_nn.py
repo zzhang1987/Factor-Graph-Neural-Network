@@ -66,6 +66,8 @@ class mp_conv_v2(base_mp_nn):
             self.activation_fn = None
 
         if isinstance(aggregtor, str):
+            print('aggregator = ', aggregtor)
+
             if aggregtor == 'max':
 
                 def agg_max(x):

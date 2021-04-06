@@ -132,70 +132,47 @@ class ldpc_graph_structure_generator:
 class Codes(Dataset):
     def __init__(self, filename, train=True):
         self.data = torch.load(filename)
-        self.node_feature = self.data['node_feature']
-        self.hop_feature = self.data['hop_feature']
-        self.y = self.data['y']
 
-        if not train:
-            self.sigma_b = self.data['sigma_b']
-        else:
-            self.sigma_b = torch.zeros((len(self.node_feature)))
-
-        self.len = len(self.node_feature)
         self.generator = ldpc_graph_structure_generator()
 
     def __len__(self):
-        return self.len
+        return len(self.data['noizy_sg'])
 
     def __getitem__(self, idx):
 
-        node_feature = self.node_feature[idx].numpy().squeeze().T[:, 0]
-        nn_idx, etype, efeature, hop = self.generator.get_high_factor_structure(
-            node_feature)
-        # hop = self.generator.get_highorder_feature(node_feature)
-        hop_feature = np.expand_dims(hop.T, -1)
-        etype = etype.astype(np.float32)
-        efeature = np.transpose(efeature, [2, 0, 1]).astype(np.float32)
-        node_feature = self.node_feature[idx].squeeze()
-        # print(node_feature[1, :])
-        # node_feature[1, :] = 10 * torch.log10(node_feature[1, :])
-        # print(node_feature)
-        # pdb.set_trace()
-        return node_feature.unsqueeze(-1), hop_feature, nn_idx, etype, efeature, self.y[idx], self.sigma_b[idx]
+        noizy_sg = self.data['noizy_sg'][idx].numpy()
+        orig = self.data['gts'][idx].numpy()
 
-
-class Codes_SP(Codes):
-    def __init__(self, filename, train=True):
-        super(Codes_SP, self).__init__(filename, train)
-
-    def __getitem__(self, idx):
-        node_feature = self.node_feature[idx].numpy().squeeze().T[:, 0]
+        # orig, trans, trans_noizy = gen_data_item(snr_db, sigma_b, train=False)
         hop, nn_idx_f2v, nn_idx_v2f, efeature_f2v, efeature_v2f = self.generator.get_mpnn_sp_structure(
-            node_feature)
-        node_feature = self.node_feature[idx].squeeze()
-
+            noizy_sg)
+        node_feature = torch.cat([self.data['noizy_sg'][idx].view(-1, 1),
+                                  self.data['snr_dbs'][idx].view(-1, 1)], dim=1).numpy().T
         hop_feature = np.expand_dims(hop.T, -1).astype(np.float32)
         efeature_v2f = np.transpose(efeature_v2f, [2, 0, 1]).astype(np.float32)
         efeature_f2v = np.transpose(efeature_f2v, [2, 0, 1]).astype(np.float32)
+        sigma_b = self.data['sigma_b'][idx].item()
 
-        return node_feature, hop_feature, nn_idx_f2v.astype(np.int), nn_idx_v2f.astype(np.int), efeature_f2v, efeature_v2f, self.y[idx], self.sigma_b[idx]
+        return node_feature, hop_feature, nn_idx_f2v.astype(np.int), nn_idx_v2f.astype(np.int), efeature_f2v, efeature_v2f, orig.astype(np.int), float(sigma_b)
 
 
-class ContinusCodes(Dataset):
-    def __init__(self):
-        self.len = 10000
-        self.sigma_b = [0, 1, 2, 3, 4, 5]
-        self.snr_db = [0, 1, 2, 3, 4]
+class ContinusCodesBasic(Dataset):
+    def __init__(self, lenth=10000, sigma_b=0, snr_db=0, burst_prob=0.05):
+        self.len = lenth
+        self.sigma_b = sigma_b
+        self.snr_db = snr_db
         self.generator = ldpc_graph_structure_generator()
+        self.burst_prob = burst_prob
 
     def __len__(self):
         return self.len
 
-    def __getitem__(self, index):
-        sigma_b = np.random.choice(self.sigma_b)
-        snr_db = np.random.choice(self.snr_db)
+    def generate_feature(self, sigma_b, snr_db):
+        sigma_b = self.sigma_b
+        snr_db = self.snr_db
 
-        orig, trans, trans_noizy, _ = gen_data_item(snr_db, sigma_b)
+        orig, trans, trans_noizy, _ = gen_data_item(
+            snr_db, sigma_b, burst_prob=self.burst_prob)
         nn_idx, etype, efeature, hop = self.generator.get_high_factor_structure(
             trans_noizy)
         # hop = self.generator.get_highorder_feature(trans_noizy)
@@ -206,6 +183,27 @@ class ContinusCodes(Dataset):
         etype = etype.astype(np.float32)
         efeature = np.transpose(efeature, [2, 0, 1]).astype(np.float32)
         return node_feature.astype(np.float32), hop_feature.astype(np.float32), nn_idx, etype, efeature, trans.astype(np.int), sigma_b
+
+    def __getitem__(self, index):
+        return self.generate_feature(self.sigma_b, self.snr_db)
+
+
+class ContinusCodes(ContinusCodesBasic):
+    def __init__(self,
+                 length=10000,
+                 sigma_b=[0, 1, 2, 3, 4, 5],
+                 snr_db=[0, 1, 2, 3, 4],
+                 burst_prob=0.05):
+        super(ContinusCodes, self).__init__(
+            length, sigma_b, snr_db, burst_prob)
+
+    def __len__(self):
+        return self.len
+
+    def __getitem__(self, index):
+        sigma_b = np.random.choice(self.sigma_b)
+        snr_db = np.random.choice(self.snr_db)
+        return self.generate_feature(sigma_b, snr_db)
 
 
 class ContinousCodesSP(Dataset):
