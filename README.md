@@ -28,14 +28,13 @@ Eprint = {arXiv:1906.00554},
 ```
 
 ## Build the package
-
 Part of the ldpc decoding and encoding are in C++ and thus compiling is required.
-We recommand to use the system compilier and to use conda to install dependencies for compiling. To install dependencies, please run:
+We recommend using the system compiler and using conda to install dependencies for compiling. To install dependencies, please run:
 ```shell
 conda install cmake pybind11
 ```
 
-Then please run the following codes for compiling:
+Then please run the following commands for compiling:
 
 ```shell
 cd lib/data/MNC
