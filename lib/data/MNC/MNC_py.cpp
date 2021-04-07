@@ -90,13 +90,14 @@ xt::pyarray<T> t2y(xt::pyarray<long int> t, T snr_db, T sigma_b, T rho){
     xt::xarray<T> res = 2 * gcx * (xt::pyarray<T>(t) - 0.5) + xt::random::randn<T>({size});
 
     T sigma = gcx * sigma_b;
-    for(int i = 0; i < size; i++){
-        auto r = xt::random::rand<T>({1});
-        if(r[0] < rho){
-            T noise = xt::random::randn<T>({1}, 0, sigma)[0];
+    if(sigma_b >= 1e-20) 
+        for(int i = 0; i < size; i++){
+            auto r = xt::random::rand<T>({1});
+            if(r[0] < rho){
+                T noise = xt::random::randn<T>({1}, 0, sigma)[0];
             res[i] += noise;
+            }
         }
-    }
     return res;
 }
 

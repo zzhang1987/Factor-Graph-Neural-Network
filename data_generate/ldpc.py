@@ -38,7 +38,7 @@ class ldpc_generate_worker:
 
         noizy_signal, _, orig, error_sum_product = \
             ldpc.gen_data_item(self.snr_db, self.sigma_b, self.burst_prob)
-
+        # print(error_sum_product)
         return noizy_signal, orig, error_sum_product
 
 
@@ -55,6 +55,7 @@ def generate_dataset():
     gts = []
     sigma_bs = []
     snr_dbs = []
+    error = np.zeros([len(snr_db), len(sigma_b)])
 
     for j, csigma_b in enumerate(sigma_b):
         for i, csnr_db in enumerate(snr_db):
@@ -67,8 +68,8 @@ def generate_dataset():
             noizy_signal = np.asarray([ditem[0] for ditem in data])
             gt = np.asarray([ditem[1] for ditem in data])
             error_rate_sp = np.asarray([ditem[2]
-                                        for ditem in data], dtype=np.int)
-            # error[i, j] = error_rate_sp
+                                        for ditem in data], dtype=np.float32)
+            error[i, j] = np.mean(error_rate_sp)
             noizy_sg.append(noizy_signal)
             gts.append(gt)
             sigma_bs.append(np.ones(arg.num) * csigma_b)
@@ -77,6 +78,7 @@ def generate_dataset():
     sigma_bs = torch.FloatTensor(np.concatenate(sigma_bs, axis=0))
     snr_dbs = torch.FloatTensor(np.concatenate(snr_dbs, axis=0))
     gts = torch.LongTensor(np.concatenate(gts, axis=0))
+    print(torch.from_numpy(error))
     logging.info('LP Relaxation error on dataset = {}, avg_error = {}'.format(
         error, np.mean(error)))
     torch.save({

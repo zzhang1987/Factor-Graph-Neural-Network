@@ -4,9 +4,8 @@ import os
 import logging
 
 
-
 def gen_data_item(snr_db, sigma_b, burst_prob=0.05, train=True):
-    
+
     s = np.random.randint(0, 2, 48)
 
     # Gfile for coding
@@ -22,7 +21,7 @@ def gen_data_item(snr_db, sigma_b, burst_prob=0.05, train=True):
                              '../../ldpc_codes/96.3.963/A2')
         # decode using sum-product
         x = zb2x(z, 48, 48, Afile, 1, 100)
-        error = np.sum(np.reshape(x, [48]) != np.reshape(s, [48])) / 48
+        error = np.sum(np.reshape(x, [48]) != np.reshape(s, [48])) / 48.0
         return y, np.ones((9, 48)), t, error
     else:
         return y, np.ones((9, 48)), t
