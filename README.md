@@ -27,6 +27,17 @@ Eprint = {arXiv:1906.00554},
 }
 ```
 
+## Build the package
+
+Part of the ldpc decoding and encoding are in C++ and thus compiling is required.
+Please run the following codes for compiling:
+
+```shell
+cd lib/data/MNC
+cmake .
+make
+```
+
 ## MAP Inference 
 
 ### Dataset downloading
